@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <Wire.h>
 
 // Pin definitions
 #define PWM_PIN 5      
@@ -7,6 +8,9 @@
 #define SENSOR_PIN 3   
 #define SENSOR_PIN2 4  
 #define CURRENT_SENSE A0
+
+//  I2C address
+#define I2C_ADDRESS 0x08  
 
 //https://gist.github.com/bradley219/5373998
 //https://www.instructables.com/Arduino-Timer-Interrupts/
@@ -22,24 +26,13 @@ volatile bool sensorTriggered = false;
 double rpmReadings[NUM_READINGS] = {0};
 int rpmIndex = 0;
 
-double getFilteredRPM(double newRPM) {
-    rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % NUM_READINGS;
-
-    double sum = 0;
-    for (int i = 0; i < NUM_READINGS; i++) {
-        sum += rpmReadings[i];
-    }
-    return sum / NUM_READINGS;
-}
-
 // Motor speed settings
 int pwmValue = 0;
 const int MIN_PWM = 20;
 const int MAX_PWM = 255;
 
 // PID variables
-double setpointRPM = 1500.0;  
+double setpointRPM = 250.0;  
 double error = 0.0;
 double lastError = 0.0;
 double integral = 0.0;
@@ -63,6 +56,43 @@ void sensorISR() {
     lastTime = currentMicros;
 }
 
+void receiveEvent(int bytes) {
+    if (bytes >= 4) {  // Ensure enough data is received
+        setpointRPM = Wire.read() * 10;  // Scale back
+        kp = Wire.read() / 10.0;
+        ki = Wire.read() / 10.0;
+        kd = Wire.read() / 10.0;
+
+        Serial.print("Received: Setpoint = ");
+        Serial.print(setpointRPM);
+        Serial.print(", Kp = ");
+        Serial.print(kp);
+        Serial.print(", Ki = ");
+        Serial.print(ki);
+        Serial.print(", Kd = ");
+        Serial.println(kd);
+    }
+}
+
+void requestEvent() {
+    // Send data back to master
+    Wire.write((byte)(setpointRPM / 10));  
+    Wire.write((byte)(kp * 10));
+    Wire.write((byte)(ki * 10));
+    Wire.write((byte)(kd * 10));
+}
+
+double getFilteredRPM(double newRPM) {
+    rpmReadings[rpmIndex] = newRPM;
+    rpmIndex = (rpmIndex + 1) % NUM_READINGS;
+
+    double sum = 0;
+    for (int i = 0; i < NUM_READINGS; i++) {
+        sum += rpmReadings[i];
+    }
+    return sum / NUM_READINGS;
+}
+
 void setup() {
     Serial.begin(115200);
 
@@ -78,6 +108,11 @@ void setup() {
     analogWrite(PWM_PIN, MIN_PWM);
 
     attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), sensorISR, RISING);
+
+    // Initialize I2C as slave
+    Wire.begin(I2C_ADDRESS);
+    Wire.onReceive(receiveEvent);  // Handle received data
+    Wire.onRequest(requestEvent);  // Send data when requested
 
     //Timer 1 interrupts
     //set timer1 interrupt at 1Hz
