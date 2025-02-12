@@ -1,23 +1,23 @@
 #include <Arduino.h>
+#include "motor_pid.h"
+#include "timer_interrupt.h"
+#include "motor_sensor.h"
 
 // Pin definitions
 #define PWM_PIN 5      
 #define ENABLE_PIN 6   
 #define DIR_PIN 7      
 #define SENSOR_PIN 3   
-#define SENSOR_PIN2 4  
 #define CURRENT_SENSE A0
 
-//https://gist.github.com/bradley219/5373998
-//https://www.instructables.com/Arduino-Timer-Interrupts/
+MotorPID pid(1, 2, 0.02);
+TimerInterrupt timer1;  // Create a TimerInterrupt object
 
-// Variables for speed calculation
 volatile unsigned long lastTime = 0;
-volatile unsigned long timeBetweenSensors = 0;  
-double currentRPM = 0.0;  
+volatile unsigned long timeBetweenSensors = 0;
+double currentRPM = 0.0;
 volatile bool sensorTriggered = false;
 
-// Moving average filter for RPM
 #define NUM_READINGS 5
 double rpmReadings[NUM_READINGS] = {0};
 int rpmIndex = 0;
@@ -25,7 +25,7 @@ int rpmIndex = 0;
 double getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
     rpmIndex = (rpmIndex + 1) % NUM_READINGS;
-
+    
     double sum = 0;
     for (int i = 0; i < NUM_READINGS; i++) {
         sum += rpmReadings[i];
@@ -33,27 +33,13 @@ double getFilteredRPM(double newRPM) {
     return sum / NUM_READINGS;
 }
 
-// Motor speed settings
 int pwmValue = 0;
 const int MIN_PWM = 20;
 const int MAX_PWM = 255;
 
-// PID variables
-double setpointRPM = 1500.0;  
-double error = 0.0;
-double lastError = 0.0;
-double integral = 0.0;
-double derivative = 0.0;
-double output = 0.0;
+volatile bool toggle1 = false;
 
-// PID tuning parameters
-double kp = 1;  
-double ki = 2; 
-double kd = 0.02;
-
-boolean toggle1 = 0;
-unsigned long lastPIDUpdate = 0;
-
+// Sensor ISR function
 void sensorISR() {
     unsigned long currentMicros = micros();
     if (lastTime != 0) {
@@ -61,6 +47,11 @@ void sensorISR() {
         sensorTriggered = true;
     }
     lastTime = currentMicros;
+}
+
+// Timer interrupt function
+void timerISR() {
+    toggle1 = true;
 }
 
 void setup() {
@@ -74,62 +65,37 @@ void setup() {
 
     digitalWrite(ENABLE_PIN, HIGH);
     digitalWrite(DIR_PIN, HIGH);
-
     analogWrite(PWM_PIN, MIN_PWM);
 
+    // Attach interrupt for sensor pin
     attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), sensorISR, RISING);
 
-    //Timer 1 interrupts
-    //set timer1 interrupt at 1Hz
-    TCCR1A = 0;// set entire TCCR1A register to 0
-    TCCR1B = 0;// same for TCCR1B
-    TCNT1  = 0;//initialize counter value to 0
-    // set compare match register for 1hz increments
-    OCR1A = 14;// = (16*10^6) / (1*1024) - 1 (must be <65536)
-    // turn on CTC mode
-    TCCR1B |= (1 << WGM12);
-    // Set CS12 and CS10 bits for 1024 prescaler
-    TCCR1B |= (1 << CS12) | (1 << CS10);  
-    // enable timer compare interrupt
-    TIMSK1 |= (1 << OCIE1A);
+    // Initialize Timer1 with a 1ms interrupt (15625 compare match value for 1ms interval)
+    timer1.begin(14);  // Set the timer for 1ms interrupt with a prescaler of 1024
+    timer1.attachInterruptHandler(timerISR);  // Attach the ISR for the timer interrupt
 
+    // Initialize other components (if needed)
+    // arduinoInit.begin(); // Uncomment if you are using ArduinoInitializer
 }
 
 void loop() {
-
+    // Process the sensor data and calculate RPM
     if (sensorTriggered) {
-        sensorTriggered = false; 
-
+        sensorTriggered = false;
         if (timeBetweenSensors > 0) {
-            double rawRPM = (1.0 / (timeBetweenSensors / 10000.0)) * 60.0;
+            double rawRPM = ((1.0 / (timeBetweenSensors)) * ((6000.0) / 11)) * 1000;
             currentRPM = getFilteredRPM(rawRPM);
         }
     }
 
+    // If timer interrupt is triggered, calculate PWM value
     if (toggle1) {
         toggle1 = false;
-
-        // Calculate dt
-        unsigned long now = millis();
-        double dt = (now - lastPIDUpdate) / 1000.0; // Convert to seconds
-        lastPIDUpdate = now;
-
-        // PID calculations
-        error = setpointRPM - currentRPM;
-        integral += error * (dt);
-        //integral = constrain(integral, -50, 50);  // Prevent integral windup
-        derivative = (error - lastError) / (dt);
-        output = (kp * error) + (ki * integral) + (kd * derivative);
-        lastError = error;
-
-        // Map output to PWM range
+        double output = pid.compute(currentRPM);
         pwmValue = constrain(output, MIN_PWM, MAX_PWM);
         analogWrite(PWM_PIN, pwmValue);
 
-        //int cs = analogRead(CURRENT_SENSE);
-        // Logging
-        //Serial.print(cs);
-        //Serial.print(",");
+        // Serial output for debugging
         Serial.print(timeBetweenSensors);
         Serial.print(",");
         Serial.print(currentRPM);
@@ -140,6 +106,7 @@ void loop() {
     delay(1);
 }
 
-ISR(TIMER1_COMPA_vect){//timer1 interrupt 1Hz toggles pin 13 (LED)
-    toggle1 = true;
+// Timer1 ISR function, which calls the interrupt handler in the TimerInterrupt class
+ISR(TIMER1_COMPA_vect) {
+    TimerInterrupt::handleInterrupt();  // Handle the interrupt and call the user-defined ISR
 }
