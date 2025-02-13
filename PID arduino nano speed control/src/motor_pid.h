@@ -5,19 +5,18 @@
 
 class MotorPID {
 public:
-    MotorPID(double kp, double ki, double kd, double setpoint = 300);
+    MotorPID(double kp, double ki, double kd, double setpoint = 300, double sampleTime = 0.01);
     void setGains(double kp, double ki, double kd);
     void setSetpoint(double setpoint);
     double compute(double current_value);
     void reset();
 
 private:
-    double calculateDt();
-
-    double kp_, ki_, kd_;
-    double setpoint_;
-    double integral_, prev_error_;
-    double dt_, last_pid_update_;
+    double kp_, ki_, kd_; // PID gains
+    double setpoint_;     // Desired setpoint
+    double integral_;     // Integral term
+    double prev_error_ = 1;   // Previous error for derivative term
+    double sampleTime_;   // Sample time for PID computation
 };
 
 #endif  // MOTOR_PID_H

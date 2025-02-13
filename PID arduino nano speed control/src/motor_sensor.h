@@ -1,27 +1,30 @@
-#ifndef SENSOR_H
-#define SENSOR_H
+#ifndef MOTOR_SENSOR_H
+#define MOTOR_SENSOR_H
 
 #include <Arduino.h>
 
-class Sensor {
-public:
-    Sensor(int pin, int filterSize);  // Constructor now accepts filter size
-    void begin();
-    static void sensorISR();  // Static function for ISR
+#define MAX_FILTER_SIZE 10
 
+class MotorSensor {
+public:
+    MotorSensor(int pin, int filterSize);
+    void begin();
+    static void MotorSensorISR();
     unsigned long getTimeBetweenSensors();
-    double getFilteredRPM(double newRPM);  // Make this method public
+    double getFilteredRPM(double newRPM);
+    bool isSensorTriggered() { return sensorTriggered; }
+    void resetSensorTriggered() { sensorTriggered = false; }
 
 private:
     int pin_;
-    int filterSize_;  // Store the filter size
-    volatile unsigned long lastTime;
-    volatile unsigned long timeBetweenSensors;
-    static const int MAX_FILTER_SIZE = 50;  // Max size of the filter (you can adjust this as needed)
+    int filterSize_;
+    volatile unsigned long lastTime = 1;
+    volatile unsigned long timeBetweenSensors = 1;
     double rpmReadings[MAX_FILTER_SIZE];
     int rpmIndex;
+    volatile bool sensorTriggered = false;
 
-    double getFilteredRPM(); // Keep a private version that doesn't take an argument
+    static MotorSensor* instance; // Singleton instance for ISR
 };
 
-#endif  // SENSOR_H
+#endif

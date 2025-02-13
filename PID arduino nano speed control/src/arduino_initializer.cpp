@@ -1,8 +1,7 @@
 #include "arduino_initializer.h"
 
-// Constructor with dependency injection
 ArduinoInitializer::ArduinoInitializer(int sensorPin, int pwmPin, int enablePin, int dirPin,
-                                       Sensor* sensor, TimerInterrupt* timer)
+                                       MotorSensor* sensor, TimerInterrupt* timer)
     : sensorPin_(sensorPin), pwmPin_(pwmPin), enablePin_(enablePin), dirPin_(dirPin),
       sensor_(sensor), timer_(timer) {
     // Validate pin numbers
@@ -12,20 +11,17 @@ ArduinoInitializer::ArduinoInitializer(int sensorPin, int pwmPin, int enablePin,
     }
 }
 
-// Destructor to clean up dynamically allocated memory
 ArduinoInitializer::~ArduinoInitializer() {
     delete sensor_;
     delete timer_;
 }
 
-// Initialize all components
 void ArduinoInitializer::begin() {
     initializeMotor();
     initializeSensor();
     initializeTimer();
 }
 
-// Initialize the motor control pins
 void ArduinoInitializer::initializeMotor() {
     pinMode(pwmPin_, OUTPUT);
     pinMode(enablePin_, OUTPUT);
@@ -38,21 +34,27 @@ void ArduinoInitializer::initializeMotor() {
     Serial.println("Motor initialized.");
 }
 
-// Initialize the sensor and attach the ISR
 void ArduinoInitializer::initializeSensor() {
     if (sensor_) {
         sensor_->begin(); // Initialize the sensor
-        attachInterrupt(digitalPinToInterrupt(sensorPin_), Sensor::sensorISR, RISING);
+        attachInterrupt(digitalPinToInterrupt(sensorPin_), MotorSensor::MotorSensorISR, RISING);
         Serial.println("Sensor initialized.");
     } else {
         Serial.println("Error: Sensor not provided.");
     }
 }
 
-// Initialize the timer interrupt
 void ArduinoInitializer::initializeTimer() {
     if (timer_) {
-        timer_->begin(14); // Start the timer with a 1Hz interrupt rate
+        timer_->begin(14); // Start the timer with a 1ms interrupt rate
+        timer_->attachInterruptHandler([]() {
+            // Timer ISR logic
+            static bool toggle1 = false;
+            toggle1 = !toggle1;
+            if (toggle1) {
+                // Perform PID control here if needed
+            }
+        });
         Serial.println("Timer initialized.");
     } else {
         Serial.println("Error: Timer not provided.");

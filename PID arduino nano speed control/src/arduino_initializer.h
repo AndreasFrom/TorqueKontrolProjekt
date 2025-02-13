@@ -1,41 +1,27 @@
 #ifndef ARDUINO_INITIALIZER_H
 #define ARDUINO_INITIALIZER_H
 
-#include <Arduino.h>
 #include "motor_sensor.h"
 #include "timer_interrupt.h"
 
 class ArduinoInitializer {
 public:
-    // Constructor with dependency injection
     ArduinoInitializer(int sensorPin, int pwmPin, int enablePin, int dirPin,
-                       Sensor* sensor, TimerInterrupt* timer);
-
-    // Destructor to clean up dynamically allocated memory
+                       MotorSensor* sensor, TimerInterrupt* timer);
     ~ArduinoInitializer();
-
-    // Initialize all components
     void begin();
 
 private:
-    // Initialize the motor control pins
-    void initializeMotor();
-
-    // Initialize the sensor and attach the ISR
-    void initializeSensor();
-
-    // Initialize the timer interrupt
-    void initializeTimer();
-
-    // Pin configurations
-    const int sensorPin_;
-    const int pwmPin_;
-    const int enablePin_;
-    const int dirPin_;
-
-    // Dependencies
-    Sensor* sensor_;
+    int sensorPin_;
+    int pwmPin_;
+    int enablePin_;
+    int dirPin_;
+    MotorSensor* sensor_;
     TimerInterrupt* timer_;
+
+    void initializeMotor();
+    void initializeSensor();
+    void initializeTimer();
 };
 
-#endif // ARDUINO_INITIALIZER_H
+#endif

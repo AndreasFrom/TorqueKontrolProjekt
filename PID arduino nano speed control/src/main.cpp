@@ -1,112 +1,77 @@
 #include <Arduino.h>
+#include "arduino_initializer.h"
 #include "motor_pid.h"
 #include "timer_interrupt.h"
 #include "motor_sensor.h"
 
 // Pin definitions
-#define PWM_PIN 5      
-#define ENABLE_PIN 6   
-#define DIR_PIN 7      
-#define SENSOR_PIN 3   
+#define PWM_PIN 5
+#define ENABLE_PIN 6
+#define DIR_PIN 7
+#define SENSOR_PIN 3
 #define CURRENT_SENSE A0
 
-MotorPID pid(1, 2, 0.02);
-TimerInterrupt timer1;  // Create a TimerInterrupt object
-
-volatile unsigned long lastTime = 0;
-volatile unsigned long timeBetweenSensors = 0;
-double currentRPM = 0.0;
-volatile bool sensorTriggered = false;
-
-#define NUM_READINGS 5
-double rpmReadings[NUM_READINGS] = {0};
-int rpmIndex = 0;
-
-double getFilteredRPM(double newRPM) {
-    rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % NUM_READINGS;
-    
-    double sum = 0;
-    for (int i = 0; i < NUM_READINGS; i++) {
-        sum += rpmReadings[i];
-    }
-    return sum / NUM_READINGS;
-}
-
-int pwmValue = 0;
+// Constants
 const int MIN_PWM = 20;
 const int MAX_PWM = 255;
+const double SAMPLE_TIME = 0.001; // 1ms sample time
 
-volatile bool toggle1 = false;
+// Objects
+MotorPID pid(1, 3, 0.0, 300, SAMPLE_TIME); // Example gains and setpoint
+TimerInterrupt timer1;
+MotorSensor motorSensor(SENSOR_PIN, 5);
+ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
 
-// Sensor ISR function
-void sensorISR() {
-    unsigned long currentMicros = micros();
-    if (lastTime != 0) {
-        timeBetweenSensors = currentMicros - lastTime;
-        sensorTriggered = true;
+// Variables
+double currentRPM = 1;
+int pwmValue = 0;
+volatile bool controlFlag = false; // Flag to indicate when to run the control logic
+
+void controlLoop() {
+    // Process sensor data and calculate RPM
+    if (motorSensor.isSensorTriggered()) {
+        motorSensor.resetSensorTriggered();
+        double rawRPM = ((1.0 / (motorSensor.getTimeBetweenSensors())) * ((6000.0) / 11)) * 1000;
+        currentRPM = motorSensor.getFilteredRPM(rawRPM);
     }
-    lastTime = currentMicros;
+
+    double output = pid.compute(currentRPM);
+    pwmValue = constrain(output, MIN_PWM, MAX_PWM);
+    analogWrite(PWM_PIN, pwmValue);
+
+    Serial.print(motorSensor.getTimeBetweenSensors());
+    Serial.print(",");
+    Serial.print(currentRPM);
+    Serial.print(",");
+    Serial.println(pwmValue);
 }
 
-// Timer interrupt function
 void timerISR() {
-    toggle1 = true;
+    controlFlag = true; // Set the flag in the ISR
 }
 
 void setup() {
     Serial.begin(115200);
+    delay(10);
 
-    pinMode(PWM_PIN, OUTPUT);
-    pinMode(ENABLE_PIN, OUTPUT);
-    pinMode(DIR_PIN, OUTPUT);
-    pinMode(SENSOR_PIN, INPUT);
-    pinMode(CURRENT_SENSE, INPUT);
+    // Initialize all components
+    arduinoInitializer.begin();
+    
+    // Initialize Timer1 with the sample time
+    timer1.begin(SAMPLE_TIME);
 
-    digitalWrite(ENABLE_PIN, HIGH);
-    digitalWrite(DIR_PIN, HIGH);
-    analogWrite(PWM_PIN, MIN_PWM);
-
-    // Attach interrupt for sensor pin
-    attachInterrupt(digitalPinToInterrupt(SENSOR_PIN), sensorISR, RISING);
-
-    // Initialize Timer1 with a 1ms interrupt (15625 compare match value for 1ms interval)
-    timer1.begin(14);  // Set the timer for 1ms interrupt with a prescaler of 1024
-    timer1.attachInterruptHandler(timerISR);  // Attach the ISR for the timer interrupt
-
-    // Initialize other components (if needed)
-    // arduinoInit.begin(); // Uncomment if you are using ArduinoInitializer
+    // Attach the timer ISR
+    timer1.attachInterruptHandler(timerISR);
 }
 
 void loop() {
-    // Process the sensor data and calculate RPM
-    if (sensorTriggered) {
-        sensorTriggered = false;
-        if (timeBetweenSensors > 0) {
-            double rawRPM = ((1.0 / (timeBetweenSensors)) * ((6000.0) / 11)) * 1000;
-            currentRPM = getFilteredRPM(rawRPM);
-        }
+    if (controlFlag) { // Check the flag in the main loop
+        controlFlag = false; // Reset the flag
+        controlLoop(); // Run the control logic
     }
-
-    // If timer interrupt is triggered, calculate PWM value
-    if (toggle1) {
-        toggle1 = false;
-        double output = pid.compute(currentRPM);
-        pwmValue = constrain(output, MIN_PWM, MAX_PWM);
-        analogWrite(PWM_PIN, pwmValue);
-
-        // Serial output for debugging
-        Serial.print(timeBetweenSensors);
-        Serial.print(",");
-        Serial.print(currentRPM);
-        Serial.print(",");
-        Serial.println(pwmValue);
-    }
-
-    delay(1);
 }
 
-// Timer1 ISR function, which calls the interrupt handler in the TimerInterrupt class
+// Timer1 ISR
 ISR(TIMER1_COMPA_vect) {
-    TimerInterrupt::handleInterrupt();  // Handle the interrupt and call the user-defined ISR
+    TimerInterrupt::handleInterrupt();
 }

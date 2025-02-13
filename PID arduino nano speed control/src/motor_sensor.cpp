@@ -1,9 +1,10 @@
 #include "motor_sensor.h"
 
-Sensor* sensorPtr = nullptr;  // Pointer to the current Sensor instance
+MotorSensor* MotorSensor::instance = nullptr;
 
-Sensor::Sensor(int pin, int filterSize) : pin_(pin), filterSize_(filterSize), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
-    if (filterSize_ > MAX_FILTER_SIZE) {  // Prevent filter size from exceeding the maximum limit
+MotorSensor::MotorSensor(int pin, int filterSize)
+    : pin_(pin), filterSize_(filterSize), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
+    if (filterSize_ > MAX_FILTER_SIZE) {
         filterSize_ = MAX_FILTER_SIZE;
     }
 
@@ -11,31 +12,31 @@ Sensor::Sensor(int pin, int filterSize) : pin_(pin), filterSize_(filterSize), la
         rpmReadings[i] = 0;
     }
 
-    sensorPtr = this;  // Store the pointer to this object
+    instance = this; // Set the singleton instance
 }
 
-void Sensor::begin() {
+void MotorSensor::begin() {
     pinMode(pin_, INPUT);
-    attachInterrupt(digitalPinToInterrupt(pin_), sensorISR, RISING);
 }
 
-void Sensor::sensorISR() {
-    if (sensorPtr) {  // Ensure the pointer is valid
+void MotorSensor::MotorSensorISR() {
+    if (instance) {
         unsigned long currentMicros = micros();
-        if (sensorPtr->lastTime != 0) {
-            sensorPtr->timeBetweenSensors = currentMicros - sensorPtr->lastTime;
+        if (instance->lastTime != 0) {
+            instance->timeBetweenSensors = currentMicros - instance->lastTime;
         }
-        sensorPtr->lastTime = currentMicros;
+        instance->lastTime = currentMicros;
+        instance->sensorTriggered = true;
     }
 }
 
-unsigned long Sensor::getTimeBetweenSensors() {
+unsigned long MotorSensor::getTimeBetweenSensors() {
     return timeBetweenSensors;
 }
 
-double Sensor::getFilteredRPM(double newRPM) {
+double MotorSensor::getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % filterSize_;  // Wrap around the filter size
+    rpmIndex = (rpmIndex + 1) % filterSize_;
 
     double sum = 0;
     for (int i = 0; i < filterSize_; i++) {

@@ -5,15 +5,13 @@
 
 class TimerInterrupt {
 public:
-    TimerInterrupt();  // Constructor
-
-    void begin(uint16_t compareMatch);  // Initialize the timer with the given compare match value
-
-    static void attachInterruptHandler(void (*isr)());  // Attach a user-defined ISR
-    static void handleInterrupt();  // Call the user-defined ISR in the main ISR
+    TimerInterrupt();
+    void begin(double sampleTime); // Accepts sampleTime in seconds
+    void attachInterruptHandler(void (*isr)());
+    static void handleInterrupt();
 
 private:
-    static void (*userISR)();  // Pointer to user ISR function
+    static void (*userISR)();
 };
 
-#endif  // TIMER_INTERRUPT_H
+#endif
