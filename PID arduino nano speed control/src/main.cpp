@@ -17,11 +17,6 @@
 //https://gist.github.com/bradley219/5373998
 //https://www.instructables.com/Arduino-Timer-Interrupts/
 
-// Variables for speed calculation
-volatile unsigned long lastTime = 0;
-volatile unsigned long timeBetweenSensors = 0;  
-double currentRPM = 0.0;  
-volatile bool sensorTriggered = false;
 
 // Moving average filter for RPM
 #define NUM_READINGS 5
@@ -29,7 +24,6 @@ double rpmReadings[NUM_READINGS] = {0};
 int rpmIndex = 0;
 
 // Motor speed settings
-int pwmValue = 0;
 const int MIN_PWM = 20;
 const int MAX_PWM = 255;
 const double SAMPLE_TIME = 0.001; // 1ms sample time
@@ -68,68 +62,6 @@ void timerISR() {
     controlFlag = true; // Set the flag in the ISR
 }
 
-void receiveEvent(int bytes) {
-    if (bytes >= 4) {  // Ensure enough data is received
-        setpointRPM = Wire.read() * 10;  // Scale back
-        kp = Wire.read() / 10.0;
-        ki = Wire.read() / 10.0;
-        kd = Wire.read() / 10.0;
-
-        Serial.print("Received: Setpoint = ");
-        Serial.print(setpointRPM);
-        Serial.print(", Kp = ");
-        Serial.print(kp);
-        Serial.print(", Ki = ");
-        Serial.print(ki);
-        Serial.print(", Kd = ");
-        Serial.println(kd);
-    }
-}
-
-void requestEvent() {
-    // Send data back to master
-    Wire.write((byte)(setpointRPM / 10));  
-    Wire.write((byte)(kp * 10));
-    Wire.write((byte)(ki * 10));
-    Wire.write((byte)(kd * 10));
-}
-
-double getFilteredRPM(double newRPM) {
-    rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % NUM_READINGS;
-
-    double sum = 0;
-    for (int i = 0; i < NUM_READINGS; i++) {
-        sum += rpmReadings[i];
-    }
-    return sum / NUM_READINGS;
-}
-
-void receiveEvent(int bytes) {
-    if (bytes >= 4) {  // Ensure enough data is received
-        setpointRPM = Wire.read() * 10;  // Scale back
-        kp = Wire.read() / 10.0;
-        ki = Wire.read() / 10.0;
-        kd = Wire.read() / 10.0;
-
-        Serial.print("Received: Setpoint = ");
-        Serial.print(setpointRPM);
-        Serial.print(", Kp = ");
-        Serial.print(kp);
-        Serial.print(", Ki = ");
-        Serial.print(ki);
-        Serial.print(", Kd = ");
-        Serial.println(kd);
-    }
-}
-
-void requestEvent() {
-    // Send data back to master
-    Wire.write((byte)(setpointRPM / 10));  
-    Wire.write((byte)(kp * 10));
-    Wire.write((byte)(ki * 10));
-    Wire.write((byte)(kd * 10));
-}
 
 double getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
@@ -167,3 +99,60 @@ void loop() {
 ISR(TIMER1_COMPA_vect) {
     TimerInterrupt::handleInterrupt();
 }
+
+
+
+/*
+
+void receiveEvent(int bytes) {
+    if (bytes >= 4) {  // Ensure enough data is received
+        setpointRPM = Wire.read() * 10;  // Scale back
+        kp = Wire.read() / 10.0;
+        ki = Wire.read() / 10.0;
+        kd = Wire.read() / 10.0;
+
+        Serial.print("Received: Setpoint = ");
+        Serial.print(setpointRPM);
+        Serial.print(", Kp = ");
+        Serial.print(kp);
+        Serial.print(", Ki = ");
+        Serial.print(ki);
+        Serial.print(", Kd = ");
+        Serial.println(kd);
+    }
+}
+
+
+void requestEvent() {
+    // Send data back to master
+    Wire.write((byte)(setpointRPM / 10));  
+    Wire.write((byte)(kp * 10));
+    Wire.write((byte)(ki * 10));
+    Wire.write((byte)(kd * 10));
+}
+
+void receiveEvent(int bytes) {
+    if (bytes >= 4) {  // Ensure enough data is received
+        setpointRPM = Wire.read() * 10;  // Scale back
+        kp = Wire.read() / 10.0;
+        ki = Wire.read() / 10.0;
+        kd = Wire.read() / 10.0;
+
+        Serial.print("Received: Setpoint = ");
+        Serial.print(setpointRPM);
+        Serial.print(", Kp = ");
+        Serial.print(kp);
+        Serial.print(", Ki = ");
+        Serial.print(ki);
+        Serial.print(", Kd = ");
+        Serial.println(kd);
+    }
+} 
+
+void requestEvent() {
+    // Send data back to master
+    Wire.write((byte)(setpointRPM / 10));  
+    Wire.write((byte)(kp * 10));
+    Wire.write((byte)(ki * 10));
+    Wire.write((byte)(kd * 10));
+}*/
