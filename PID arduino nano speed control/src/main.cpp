@@ -3,6 +3,7 @@
 #include "motor_pid.h"
 #include "timer_interrupt.h"
 #include "motor_sensor.h"
+#include "i2c_slave.h"
 
 // Pin definitions
 #define PWM_PIN 5
@@ -11,12 +12,8 @@
 #define SENSOR_PIN 3
 #define CURRENT_SENSE A0
 
-//  I2C address
+// I2C address
 #define I2C_ADDRESS 0x08  
-
-//https://gist.github.com/bradley219/5373998
-//https://www.instructables.com/Arduino-Timer-Interrupts/
-
 
 // Moving average filter for RPM
 #define NUM_READINGS 5
@@ -33,17 +30,19 @@ MotorPID pid(1, 3, 0.0, 300, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
+I2CSlave i2cSlave(I2C_ADDRESS);
 
 // Variables
 double currentRPM = 1;
 int pwmValue = 0;
 volatile bool controlFlag = false; // Flag to indicate when to run the control logic
+bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are available
 
 void controlLoop() {
     // Process sensor data and calculate RPM
     if (motorSensor.isSensorTriggered()) {
         motorSensor.resetSensorTriggered();
-        double rawRPM = ((1.0 / (motorSensor.getTimeBetweenSensors())) * ((6000.0) / 11)) * 1000;
+        double rawRPM = ((1e6*60.0) / 110) / (motorSensor.getTimeBetweenSensors());
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
     }
 
@@ -61,7 +60,6 @@ void controlLoop() {
 void timerISR() {
     controlFlag = true; // Set the flag in the ISR
 }
-
 
 double getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
@@ -86,6 +84,11 @@ void setup() {
 
     // Attach the timer ISR
     timer1.attachInterruptHandler(timerISR);
+
+    // Initialize I2C Slave
+    delay(10);
+    i2cSlave.begin();
+    delay(10);  
 }
 
 void loop() {
@@ -93,66 +96,19 @@ void loop() {
         controlFlag = false; // Reset the flag
         controlLoop(); // Run the control logic
     }
+
+    // Update setpoint RPM
+    pid.setSetpoint(i2cSlave.getSetpointRPM());
+
+    // Update PID gains only if new values are available
+    
+    if (i2cSlave.newPIDGainsAvailable) {
+        pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
+        i2cSlave.newPIDGainsAvailable = false; // Reset the flag
+    }
 }
 
 // Timer1 ISR
 ISR(TIMER1_COMPA_vect) {
     TimerInterrupt::handleInterrupt();
 }
-
-
-
-/*
-
-void receiveEvent(int bytes) {
-    if (bytes >= 4) {  // Ensure enough data is received
-        setpointRPM = Wire.read() * 10;  // Scale back
-        kp = Wire.read() / 10.0;
-        ki = Wire.read() / 10.0;
-        kd = Wire.read() / 10.0;
-
-        Serial.print("Received: Setpoint = ");
-        Serial.print(setpointRPM);
-        Serial.print(", Kp = ");
-        Serial.print(kp);
-        Serial.print(", Ki = ");
-        Serial.print(ki);
-        Serial.print(", Kd = ");
-        Serial.println(kd);
-    }
-}
-
-
-void requestEvent() {
-    // Send data back to master
-    Wire.write((byte)(setpointRPM / 10));  
-    Wire.write((byte)(kp * 10));
-    Wire.write((byte)(ki * 10));
-    Wire.write((byte)(kd * 10));
-}
-
-void receiveEvent(int bytes) {
-    if (bytes >= 4) {  // Ensure enough data is received
-        setpointRPM = Wire.read() * 10;  // Scale back
-        kp = Wire.read() / 10.0;
-        ki = Wire.read() / 10.0;
-        kd = Wire.read() / 10.0;
-
-        Serial.print("Received: Setpoint = ");
-        Serial.print(setpointRPM);
-        Serial.print(", Kp = ");
-        Serial.print(kp);
-        Serial.print(", Ki = ");
-        Serial.print(ki);
-        Serial.print(", Kd = ");
-        Serial.println(kd);
-    }
-} 
-
-void requestEvent() {
-    // Send data back to master
-    Wire.write((byte)(setpointRPM / 10));  
-    Wire.write((byte)(kp * 10));
-    Wire.write((byte)(ki * 10));
-    Wire.write((byte)(kd * 10));
-}*/
