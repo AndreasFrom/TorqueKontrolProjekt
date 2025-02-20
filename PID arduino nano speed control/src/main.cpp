@@ -21,12 +21,12 @@ double rpmReadings[NUM_READINGS] = {0};
 int rpmIndex = 0;
 
 // Motor speed settings
-const int MIN_PWM = 20;
+const int MIN_PWM = 0;
 const int MAX_PWM = 255;
 const double SAMPLE_TIME = 0.001; // 1ms sample time
 
 // Objects
-MotorPID pid(1, 3, 0.0, 300, SAMPLE_TIME); // Example gains and setpoint
+MotorPID pid(3, 11, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
@@ -37,12 +37,15 @@ double currentRPM = 1;
 int pwmValue = 0;
 volatile bool controlFlag = false; // Flag to indicate when to run the control logic
 bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are available
+int step = 0;
 
 void controlLoop() {
     // Process sensor data and calculate RPM
     if (motorSensor.isSensorTriggered()) {
         motorSensor.resetSensorTriggered();
         double rawRPM = ((1e6*60.0) / 110) / (motorSensor.getTimeBetweenSensors());
+        if (rawRPM > 2000) {rawRPM = 0;}
+
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
     }
 
@@ -50,6 +53,10 @@ void controlLoop() {
     pwmValue = constrain(output, MIN_PWM, MAX_PWM);
     analogWrite(PWM_PIN, pwmValue);
 
+    unsigned long timestamp = millis(); 
+
+    Serial.print(timestamp); 
+    Serial.print(",");
     Serial.print(motorSensor.getTimeBetweenSensors());
     Serial.print(",");
     Serial.print(currentRPM);
@@ -86,24 +93,27 @@ void setup() {
     timer1.attachInterruptHandler(timerISR);
 
     // Initialize I2C Slave
-    delay(10);
-    i2cSlave.begin();
-    delay(10);  
+    //i2cSlave.begin();
+      
 }
 
 void loop() {
+    step++;
+    if (step == 2500) {
+        pid.setSetpoint(500);
+    }
     if (controlFlag) { // Check the flag in the main loop
         controlFlag = false; // Reset the flag
         controlLoop(); // Run the control logic
     }
 
     // Update setpoint RPM
-    pid.setSetpoint(i2cSlave.getSetpointRPM());
+    //pid.setSetpoint(i2cSlave.getSetpointRPM());
 
     // Update PID gains only if new values are available
     
     if (i2cSlave.newPIDGainsAvailable) {
-        pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
+        //pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
         i2cSlave.newPIDGainsAvailable = false; // Reset the flag
     }
 }
