@@ -26,7 +26,7 @@ const int MAX_PWM = 255;
 const double SAMPLE_TIME = 0.001; // 1ms sample time
 
 // Objects
-MotorPID pid(3, 11, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
+MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
@@ -100,7 +100,7 @@ void setup() {
 void loop() {
     step++;
     if (step == 2500) {
-        pid.setSetpoint(500);
+        pid.setSetpoint(300);
     }
     if (controlFlag) { // Check the flag in the main loop
         controlFlag = false; // Reset the flag
