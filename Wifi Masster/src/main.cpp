@@ -64,36 +64,43 @@ void loop() {
         byte ki_scaled = (byte)(ki * 10);
         byte kd_scaled = (byte)(kd * 10);
 
+        for (int i = 0x08; i <= (0x08 + 4); i++)
+        {
+            Wire.beginTransmission(i);
+            Wire.write(setpoint_scaled);
+            Wire.write(kp_scaled);
+            Wire.write(ki_scaled);
+            Wire.write(kd_scaled);
+            Wire.endTransmission();
+        }
         // Send data to slave
-        Wire.beginTransmission(SLAVE_ADDRESS);
-        Wire.write(setpoint_scaled);
-        Wire.write(kp_scaled);
-        Wire.write(ki_scaled);
-        Wire.write(kd_scaled);
-        Wire.endTransmission();
+        
 
         Serial.println("Data sent successfully!");
 
         // Request the data back from the slave
         delay(50); // Small delay to allow processing
-        Wire.requestFrom(SLAVE_ADDRESS, 4);  
+        for (int i = 0x08; i <= (0x08 + 4); i++)
+        {
+            Wire.requestFrom(i, 4);  
 
-        if (Wire.available() >= 4) {
-            int setpoint_recv = Wire.read() * 10;
-            float kp_recv = Wire.read() / 10.0;
-            float ki_recv = Wire.read() / 10.0;
-            float kd_recv = Wire.read() / 10.0;
+            if (Wire.available() >= 4) {
+                int setpoint_recv = Wire.read() * 10;
+                float kp_recv = Wire.read() / 10.0;
+                float ki_recv = Wire.read() / 10.0;
+                float kd_recv = Wire.read() / 10.0;
 
-            Serial.print("Received back: Setpoint = ");
-            Serial.print(setpoint_recv);
-            Serial.print(", Kp = ");
-            Serial.print(kp_recv);
-            Serial.print(", Ki = ");
-            Serial.print(ki_recv);
-            Serial.print(", Kd = ");
-            Serial.println(kd_recv);
-        } else {
-            Serial.println("Error: Did not receive expected data from slave!");
+                Serial.print("Received back: Setpoint = ");
+                Serial.print(setpoint_recv);
+                Serial.print(", Kp = ");
+                Serial.print(kp_recv);
+                Serial.print(", Ki = ");
+                Serial.print(ki_recv);
+                Serial.print(", Kd = ");
+                Serial.println(kd_recv);
+            } else {
+                Serial.println("Error: Did not receive expected data from slave!");
+            }
         }
     }
 }

@@ -30,7 +30,7 @@ MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
-I2CSlave i2cSlave(I2C_ADDRESS);
+I2CSlave i2cSlave;
 
 // Variables
 double currentRPM = 1;
@@ -93,27 +93,24 @@ void setup() {
     timer1.attachInterruptHandler(timerISR);
 
     // Initialize I2C Slave
-    //i2cSlave.begin();
+    i2cSlave.begin();
       
 }
 
 void loop() {
-    step++;
-    if (step == 2500) {
-        pid.setSetpoint(300);
-    }
+
     if (controlFlag) { // Check the flag in the main loop
         controlFlag = false; // Reset the flag
         controlLoop(); // Run the control logic
     }
 
     // Update setpoint RPM
-    //pid.setSetpoint(i2cSlave.getSetpointRPM());
+    pid.setSetpoint(i2cSlave.getSetpointRPM());
 
     // Update PID gains only if new values are available
     
     if (i2cSlave.newPIDGainsAvailable) {
-        //pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
+        pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
         i2cSlave.newPIDGainsAvailable = false; // Reset the flag
     }
 }

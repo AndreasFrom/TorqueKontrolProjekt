@@ -1,12 +1,16 @@
 #ifndef I2CSLAVE_H
 #define I2CSLAVE_H
 
+#define DIPSWITCH_1 7
+#define DIPSWITCH_2 8
+
+
 #include <Wire.h>
 #include <Arduino.h>
 
 class I2CSlave {
 public:
-    I2CSlave(uint8_t address);
+    I2CSlave();
     void begin();
     void setSetpointRPM(double setpoint);
     void setPIDGains(double kp, double ki, double kd);

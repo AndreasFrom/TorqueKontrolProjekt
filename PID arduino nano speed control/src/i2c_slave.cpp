@@ -2,14 +2,23 @@
 
 I2CSlave* I2CSlave::instance = nullptr;
 
-I2CSlave::I2CSlave(uint8_t address) : _address(address), _setpointRPM(0), _kp(0), _ki(0), _kd(0) {
+I2CSlave::I2CSlave() : _setpointRPM(0), _kp(0), _ki(0), _kd(0) {
     instance = this;
 }
 
 void I2CSlave::begin() {
+
+    pinMode(DIPSWITCH_1, INPUT);
+    pinMode(DIPSWITCH_2, INPUT);
+    delay(1); 
+
+    _address = 0x08 + ((!digitalRead(DIPSWITCH_1)) << 1) + (!digitalRead(DIPSWITCH_2));
+
     Wire.begin(_address);
     Wire.onReceive(receiveEvent);
     Wire.onRequest(requestEvent);
+
+    
 }
 
 void I2CSlave::setSetpointRPM(double setpoint) {
