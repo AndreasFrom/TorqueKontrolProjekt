@@ -64,7 +64,7 @@ void loop() {
         byte ki_scaled = (byte)(ki * 10);
         byte kd_scaled = (byte)(kd * 10);
 
-        for (int i = 0x08; i <= (0x08 + 4); i++)
+        for (int i = 0x08; i <= (0x08 + 3); i++)
         {
             Wire.beginTransmission(i);
             Wire.write(setpoint_scaled);
@@ -80,7 +80,7 @@ void loop() {
 
         // Request the data back from the slave
         delay(50); // Small delay to allow processing
-        for (int i = 0x08; i <= (0x08 + 4); i++)
+        for (int i = 0x08; i <= (0x08 + 3); i++)
         {
             Wire.requestFrom(i, 4);  
 
