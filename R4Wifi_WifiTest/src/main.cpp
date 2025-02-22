@@ -41,9 +41,14 @@ void loop() {
                 Serial.print("Received: ");
                 Serial.println(message);
 
-                // Send an "ACK" response
-                client.write("ACK\n");
-                Serial.println("Sent ACK!");
+                if (message == "START") {
+                    // Send sensor data
+                    int sensorValue = analogRead(A0);  // Read from analog sensor
+                    client.print("SENSOR:");
+                    client.println(sensorValue);
+                    Serial.print("Sent sensor data: ");
+                    Serial.println(sensorValue);
+                }
             }
         }
 
