@@ -78,7 +78,9 @@ def receive_data():
                     # Parse the sensor value
                     if line.startswith("SENSOR:"):
                         sensor_value = line.split(":")[1]
-                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Format: YYYY-MM-DD HH:MM:SS
+                        # Get current time with milliseconds
+                        now = datetime.now()
+                        timestamp = now.strftime("%Y-%m-%d %H:%M:%S") + f".{now.microsecond // 1000:03d}"  # Add milliseconds
 
                         # Display the data in the text box
                         text_box.insert(tk.END, f"{timestamp} - {sensor_value}\n")
