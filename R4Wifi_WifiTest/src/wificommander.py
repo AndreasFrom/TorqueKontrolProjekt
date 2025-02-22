@@ -2,6 +2,8 @@ import tkinter as tk
 from tkinter import messagebox
 import socket
 import threading
+import csv
+from datetime import datetime
 
 # TCP Configuration
 TCP_IP = "192.168.93.146"  # Replace with the Arduino's IP address
@@ -10,6 +12,24 @@ TCP_PORT = 4242            # Must match the Arduino's TCP port
 # Global variables
 logging = False
 sock = None
+csv_file = None
+csv_writer = None
+
+def create_csv_file():
+    """Create a CSV file with a timestamped filename."""
+    global csv_file, csv_writer
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
+    filename = f"sensor_data_{timestamp}.csv"
+    csv_file = open(filename, mode="w", newline="")
+    csv_writer = csv.writer(csv_file)
+    # Write the header row
+    csv_writer.writerow(["Timestamp", "Sensor Value"])
+
+def close_csv_file():
+    """Close the CSV file."""
+    global csv_file
+    if csv_file:
+        csv_file.close()
 
 def send_command(command):
     """Send a command to the Arduino."""
@@ -29,6 +49,7 @@ def start_logging():
     """Start logging by sending the START command."""
     global logging
     logging = True
+    create_csv_file()  # Create a new CSV file
     send_command("START")
     threading.Thread(target=receive_data, daemon=True).start()
 
@@ -37,16 +58,34 @@ def stop_logging():
     global logging
     logging = False
     send_command("STOP")
+    close_csv_file()  # Close the CSV file
 
 def receive_data():
-    """Receive sensor data from the Arduino."""
-    global sock, logging
+    """Receive sensor data from the Arduino and log it to the CSV file."""
+    global sock, logging, csv_writer
+    buffer = ""  # Buffer to store incomplete data
     while logging:
         try:
             data = sock.recv(1024).decode()
             if data:
-                text_box.insert(tk.END, data)
-                text_box.see(tk.END)  # Scroll to the bottom
+                buffer += data  # Append incoming data to the buffer
+
+                # Process complete lines
+                while "\n" in buffer:
+                    line, buffer = buffer.split("\n", 1)  # Split at the first newline
+                    line = line.strip()  # Remove leading/trailing whitespace
+
+                    # Parse the sensor value
+                    if line.startswith("SENSOR:"):
+                        sensor_value = line.split(":")[1]
+                        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Format: YYYY-MM-DD HH:MM:SS
+
+                        # Display the data in the text box
+                        text_box.insert(tk.END, f"{timestamp} - {sensor_value}\n")
+                        text_box.see(tk.END)  # Scroll to the bottom
+
+                        # Write the data to the CSV file
+                        csv_writer.writerow([timestamp, sensor_value])
         except socket.timeout:
             continue
         except Exception as e:
@@ -70,6 +109,7 @@ text_box.pack(padx=20, pady=10)
 # Run the UI
 root.mainloop()
 
-# Close the socket when the program exits
+# Close the socket and CSV file when the program exits
 if sock:
     sock.close()
+close_csv_file()
