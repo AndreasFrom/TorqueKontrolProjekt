@@ -6,7 +6,7 @@ import csv
 from datetime import datetime
 
 # TCP Configuration
-TCP_IP = "192.168.93.146"  # Replace with the Arduino's IP address
+TCP_IP = "192.168.93.146"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -80,7 +80,7 @@ def receive_data():
                         sensor_value = line.split(":")[1]
                         # Get current time with milliseconds
                         now = datetime.now()
-                        timestamp = now.strftime("%Y-%m-%d %H:%M:%S") + f".{now.microsecond // 1000:03d}"  # Add milliseconds
+                        timestamp = now.strftime("%Y-%m-%d %H:%M:%S") + f".{now.microsecond // 1000:03d}"  
 
                         # Display the data in the text box
                         text_box.insert(tk.END, f"{timestamp} - {sensor_value}\n")
