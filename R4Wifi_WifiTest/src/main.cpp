@@ -8,6 +8,8 @@ const char* pwd = "werty123";      // Replace with your Wi-Fi password
 const int tcpPort = 4242;  // TCP port to listen on
 WiFiServer server(tcpPort);
 
+bool logging = false;  // Flag to control logging
+
 void setup() {
     Serial.begin(115200);
 
@@ -36,20 +38,30 @@ void loop() {
 
         // Read data from the client
         while (client.connected()) {
+            if (logging) {
+                int sensorValue = analogRead(A0);  // Read from analog sensor
+                client.print("SENSOR:");
+                client.println(sensorValue);
+                Serial.print("Sent sensor data: ");
+                Serial.println(sensorValue);
+
+                delay(1000);  // Adjust the delay based on your logging needs
+            }
+
             if (client.available()) {
                 String message = client.readStringUntil('\n');
                 Serial.print("Received: ");
                 Serial.println(message);
 
                 if (message == "START") {
-                    // Send sensor data
-                    int sensorValue = analogRead(A0);  // Read from analog sensor
-                    client.print("SENSOR:");
-                    client.println(sensorValue);
-                    Serial.print("Sent sensor data: ");
-                    Serial.println(sensorValue);
+                    logging = true;
+                    Serial.println("Logging started!");
+                } else if (message == "STOP") {
+                    logging = false;
+                    Serial.println("Logging stopped!");
                 }
             }
+
         }
 
         // Close the connection
