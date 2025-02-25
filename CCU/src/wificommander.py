@@ -125,6 +125,7 @@ root = tk.Tk()
 root.title("Arduino Sensor Logger")
 
 # Movement categories
+other_commands = ["Select Movement"]
 green_commands = ["Circle"]
 red_commands = ["Straight", "Straight with Turn", "Turn Left 90°", "Turn Right 90°", "Turn Left 45°", "Turn Right 45°", "U-Turn"]
 
@@ -138,6 +139,7 @@ clicked.set("Select Movement")
 def handle_selection(choice):
     """Send command based on dropdown selection."""
     commands = {
+        "Select Movement": None,
         "Circle": "CIRCLE",
         "Straight": "STRAIGHT",
         "Straight with Turn": "STRAIGHT_TURN",
@@ -158,7 +160,7 @@ drop.pack(pady=10)
 # Set colors for dropdown menu options
 def set_color(menu):
     for i, option in enumerate(options):
-        color = "green" if option in green_commands else "red"
+        color = "green" if option in green_commands else "red" if option in red_commands else "gray"
         menu.entryconfig(i, foreground=color)
 
 menu = root.nametowidget(drop.menuname)
