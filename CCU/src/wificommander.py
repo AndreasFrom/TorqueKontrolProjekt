@@ -119,8 +119,7 @@ def receive_data():
         except Exception as e:
             print(f"Error receiving data: {e}")
             break
-        
-# Create the main UI window
+ # Create the main UI window
 root = tk.Tk()
 root.title("Arduino Sensor Logger")
 
@@ -155,7 +154,7 @@ def handle_selection(choice):
 
 # Create Dropdown menu
 drop = OptionMenu(root, clicked, *options, command=handle_selection)
-drop.pack(pady=10)
+drop.grid(row=0, column=0, padx=10, pady=5, sticky="w")
 
 # Set colors for dropdown menu options
 def set_color(menu):
@@ -168,18 +167,17 @@ root.after(100, lambda: set_color(menu))
 
 # UI Elements
 button_start = tk.Button(root, text="Start Logging", command=start_logging)
-button_start.pack(padx=20, pady=10)
+button_start.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 
 button_stop = tk.Button(root, text="Stop Logging", command=stop_logging)
-button_stop.pack(padx=20, pady=10)
+button_stop.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 
+# Move text box to the right
 text_box = tk.Text(root, height=10, width=50)
-text_box.pack(padx=20, pady=10)
+text_box.grid(row=0, column=1, rowspan=3, padx=10, pady=5, sticky="nsew")  # Takes up multiple rows
 
-# Run the UI
+# Make the text box expand properly when resizing
+root.grid_columnconfigure(1, weight=1)
+root.grid_rowconfigure(0, weight=1)
+
 root.mainloop()
-
-# Cleanup on exit
-if sock:
-    sock.close()
-close_csv_file()
