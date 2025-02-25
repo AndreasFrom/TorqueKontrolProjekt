@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import messagebox
+from tkinter import messagebox, StringVar, OptionMenu
 import socket
 import threading
 import csv
@@ -18,12 +18,11 @@ csv_writer = None
 def create_csv_file():
     """Create a CSV file with a timestamped filename."""
     global csv_file, csv_writer
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")  # Format: YYYYMMDD_HHMMSS
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"sensor_data_{timestamp}.csv"
     csv_file = open(filename, mode="w", newline="")
     csv_writer = csv.writer(csv_file)
-    # Write the header row
-    csv_writer.writerow(["Timestamp", "Sensor Value"])
+    csv_writer.writerow(["Timestamp", "Omagn_x", "Omagn_y", "Omagn_z", "Ogyro_x", "Ogyro_y", "Ogyro_z", "Oaccel_x", "Oaccel_y", "Oaccel_z"])
 
 def close_csv_file():
     """Close the CSV file."""
@@ -49,7 +48,7 @@ def start_logging():
     """Start logging by sending the START command."""
     global logging
     logging = True
-    create_csv_file()  # Create a new CSV file
+    create_csv_file()
     send_command("START")
     threading.Thread(target=receive_data, daemon=True).start()
 
@@ -58,7 +57,7 @@ def stop_logging():
     global logging
     logging = False
     send_command("STOP")
-    close_csv_file()  # Close the CSV file
+    close_csv_file()
 
 def receive_data():
     """Receive sensor data from the Arduino and log it to the CSV file."""
@@ -75,25 +74,19 @@ def receive_data():
                     line, buffer = buffer.split("\n", 1)  # Split at the first newline
                     line = line.strip()  # Remove leading/trailing whitespace
 
-                    # Parse the sensor value
                     if line.startswith("SENSOR:"):
                         # Remove the "SENSOR:" prefix
                         sensor_data = line[len("SENSOR:"):].strip()
-
-                        # Split into magnetometer, gyroscope, and accelerometer data
                         parts = sensor_data.split(" | ")
                         if len(parts) == 3:
                             omagn_data = parts[0].replace("Omagn: ", "").split(", ")
                             ogyro_data = parts[1].replace("Ogyro: ", "").split(", ")
                             oaccel_data = parts[2].replace("Oaccel: ", "").split(", ")
 
-                            # Ensure we have exactly 3 values for each sensor
                             if len(omagn_data) == 3 and len(ogyro_data) == 3 and len(oaccel_data) == 3:
-                                # Get current time with milliseconds
                                 now = datetime.now()
                                 timestamp = now.strftime("%Y-%m-%d %H:%M:%S") + f".{now.microsecond // 1000:03d}"
 
-                                # Prepare the data for logging
                                 sensor_values = {
                                     "timestamp": timestamp,
                                     "Omagn_x": float(omagn_data[0]),
@@ -111,7 +104,6 @@ def receive_data():
                                 text_box.insert(tk.END, f"{timestamp} - {sensor_values}\n")
                                 text_box.see(tk.END)  # Scroll to the bottom
 
-                                # Write the data to the CSV file
                                 csv_writer.writerow([
                                     sensor_values["timestamp"],
                                     sensor_values["Omagn_x"], sensor_values["Omagn_y"], sensor_values["Omagn_z"],
@@ -132,7 +124,47 @@ def receive_data():
 root = tk.Tk()
 root.title("Arduino Sensor Logger")
 
-# Create and place UI elements
+# Movement categories
+green_commands = ["Circle"]
+red_commands = ["Straight", "Straight with Turn", "Turn Left 90°", "Turn Right 90°", "Turn Left 45°", "Turn Right 45°", "U-Turn"]
+
+options = green_commands + red_commands
+
+# Variable for dropdown
+clicked = StringVar()
+clicked.set("Select Movement")
+
+# Function to handle dropdown selection
+def handle_selection(choice):
+    """Send command based on dropdown selection."""
+    commands = {
+        "Circle": "CIRCLE",
+        "Straight": "STRAIGHT",
+        "Straight with Turn": "STRAIGHT_TURN",
+        "Turn Left 90°": "TURN_LEFT_90",
+        "Turn Right 90°": "TURN_RIGHT_90",
+        "Turn Left 45°": "TURN_LEFT_45",
+        "Turn Right 45°": "TURN_RIGHT_45",
+        "U-Turn": "U_TURN"
+    }
+    command = commands.get(choice)
+    if command:
+        send_command(command)
+
+# Create Dropdown menu
+drop = OptionMenu(root, clicked, *options, command=handle_selection)
+drop.pack(pady=10)
+
+# Set colors for dropdown menu options
+def set_color(menu):
+    for i, option in enumerate(options):
+        color = "green" if option in green_commands else "red"
+        menu.entryconfig(i, foreground=color)
+
+menu = root.nametowidget(drop.menuname)
+root.after(100, lambda: set_color(menu))
+
+# UI Elements
 button_start = tk.Button(root, text="Start Logging", command=start_logging)
 button_start.pack(padx=20, pady=10)
 
@@ -145,7 +177,7 @@ text_box.pack(padx=20, pady=10)
 # Run the UI
 root.mainloop()
 
-# Close the socket and CSV file when the program exits
+# Cleanup on exit
 if sock:
     sock.close()
 close_csv_file()
