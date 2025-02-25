@@ -1017,7 +1017,7 @@ class DFRobot_BMX160{
      * @param accel  to store the accel data
      */
     void getAllData( sBmx160SensorData_t *magn,  sBmx160SensorData_t *gyro,  sBmx160SensorData_t *accel);
-
+    void getGyroACC(sBmx160SensorData_t *gyro, sBmx160SensorData_t *accel);
     /**
      * @fn softReset
      * @brief reset bmx160 hardware
