@@ -38,7 +38,7 @@ void handleClientCommunication(WiFiClient &client) {
         }
     }
     
-    delay(1000);
+    delay(1);
 }
 
 void sendSensorData(WiFiClient &client) {
