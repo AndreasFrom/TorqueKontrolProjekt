@@ -59,6 +59,29 @@ def stop_logging():
     send_command("STOP")
     close_csv_file()
 
+# Function to send PID parameters and setpoint
+def send_pid_setpoint():
+    """Send PID parameters and setpoint to the Arduino."""
+    try:
+        kp = float(entry_kp.get())
+        ki = float(entry_ki.get())
+        kd = float(entry_kd.get())
+        setpoint = float(entry_setpoint.get())
+        send_command(f"PID:{kp},{ki},{kd},{setpoint}")
+    except ValueError:
+        print("Error: Invalid input for PID parameters or setpoint")
+
+# Function to send only the setpoint
+def send_setpoint_only():
+    """Send only the setpoint to the Arduino (keep PID parameters unchanged)."""
+    try:
+        setpoint = float(entry_setpoint.get())
+        send_command(f"SETPOINT:{setpoint}")
+    except ValueError:
+        print("Error: Invalid input for setpoint")
+
+
+
 def receive_data():
     """Receive sensor data from the Arduino and log it to the CSV file."""
     global sock, logging, csv_writer
@@ -119,7 +142,8 @@ def receive_data():
         except Exception as e:
             print(f"Error receiving data: {e}")
             break
- # Create the main UI window
+
+# Create the main UI window
 root = tk.Tk()
 root.title("Arduino Sensor Logger")
 
@@ -165,19 +189,46 @@ def set_color(menu):
 menu = root.nametowidget(drop.menuname)
 root.after(100, lambda: set_color(menu))
 
-# UI Elements
+# UI Elements for PID and Setpoint
+label_kp = tk.Label(root, text="Kp:")
+label_kp.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+entry_kp = tk.Entry(root)
+entry_kp.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+
+label_ki = tk.Label(root, text="Ki:")
+label_ki.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+entry_ki = tk.Entry(root)
+entry_ki.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+
+label_kd = tk.Label(root, text="Kd:")
+label_kd.grid(row=3, column=0, padx=10, pady=5, sticky="w")
+entry_kd = tk.Entry(root)
+entry_kd.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+
+label_setpoint = tk.Label(root, text="Setpoint:")
+label_setpoint.grid(row=4, column=0, padx=10, pady=5, sticky="w")
+entry_setpoint = tk.Entry(root)
+entry_setpoint.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+
+button_send_pid = tk.Button(root, text="Send PID & Setpoint", command=send_pid_setpoint)
+button_send_pid.grid(row=5, column=0, columnspan=2, padx=10, pady=5, sticky="w")
+
+button_send_setpoint = tk.Button(root, text="Send Setpoint Only", command=send_setpoint_only)
+button_send_setpoint.grid(row=5, column=1, columnspan=2, padx=10, pady=10, sticky="w")
+
+# UI Elements for logging
 button_start = tk.Button(root, text="Start Logging", command=start_logging)
-button_start.grid(row=1, column=0, padx=10, pady=5, sticky="w")
+button_start.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
 button_stop = tk.Button(root, text="Stop Logging", command=stop_logging)
-button_stop.grid(row=2, column=0, padx=10, pady=5, sticky="w")
+button_stop.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 
-# Move text box to the right
+# Text box for logging
 text_box = tk.Text(root, height=10, width=50)
-text_box.grid(row=0, column=1, rowspan=3, padx=10, pady=5, sticky="nsew")  # Takes up multiple rows
+text_box.grid(row=0, column=2, rowspan=8, padx=10, pady=5, sticky="nsew")  
 
 # Make the text box expand properly when resizing
-root.grid_columnconfigure(1, weight=1)
+root.grid_columnconfigure(2, weight=1)
 root.grid_rowconfigure(0, weight=1)
 
 root.mainloop()
