@@ -1,61 +1,116 @@
+#include <Arduino.h>
+#include <Wire.h>
 #include "wifihandler.h"
 #include <DFRobot_BMX160.h>
-#include <Wire.h>
-#include <SPI.h>
+#include "i2c_master.h"
 
-DFRobot_BMX160 bmx160;
+// I2C Config
+#define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
 
-// Function prototypes
+// WiFi Config
+WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+WiFiClient client;
+I2CMaster i2cMaster;
+
+//DFRobot_BMX160 bmx160;
+bool logging = false; // Flag til logging
+
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
 void processClientMessage(String message);
 
-// Global variables
-WiFiHandler wifiHandler("coolguys123", "werty123", 4242);  // Replace with your credentials
-bool logging = false;  // Flag to control logging
-
 void setup() {
     Serial.begin(115200);
-    wifiHandler.connectToWiFi();  // Connect to Wi-Fi
-    wifiHandler.startTCPServer(); // Start TCP server
+    i2cMaster.begin();
+    wifiHandler.connectToWiFi();
+    wifiHandler.startTCPServer();
 
-      //init the hardware bmx160  
-    if (bmx160.begin() != true){
-    Serial.println("init false");
-    while(1);
-    }
+    /*if (!bmx160.begin()) {
+        Serial.println("Sensor init fejlede!");
+        while (1);
+    }*/
 }
 
 void loop() {
-    // Check for a client connection
-    WiFiClient client = wifiHandler.acceptClient();
+    client = wifiHandler.acceptClient();
     if (client) {
         Serial.println("Client connected!");
-        handleClientCommunication(client);  //while loop
-        client.stop();  // Close the connection
+        while (client.connected()) {
+            handleClientCommunication(client);
+        }
+        client.stop();
+        logging = false; // Reset logging flag when client disconnects
         Serial.println("Client disconnected.");
     }
 }
 
 void handleClientCommunication(WiFiClient &client) {
-    while (client.connected()) {
-        if (logging) {
-            sendSensorData(client);  // Send sensor data if logging is enabled
+    if (logging) {
+        sendSensorData(client);
+    }
+
+    if (client.available()) {
+        String message = client.readStringUntil('\n');
+        processClientMessage(message);
+    }
+}
+
+void processClientMessage(String message) {
+    Serial.print("Received: ");
+    Serial.println(message);
+
+    if (message == "START") {
+        logging = true;
+        Serial.println("Logging started!");
+    } else if (message == "STOP") {
+        logging = false;
+        Serial.println("Logging stopped!");
+    } else if (message.startsWith("PID:")) {
+        message.remove(0, 4);
+        int comma1 = message.indexOf(',');
+        int comma2 = message.indexOf(',', comma1 + 1);
+        int comma3 = message.indexOf(',', comma2 + 1);
+
+        if (comma1 == -1 || comma2 == -1 || comma3 == -1) {
+            Serial.println("Fejl: Forkert PID-format");
+            return;
         }
 
-        if (client.available()) {
-            String message = client.readStringUntil('\n');
-            processClientMessage(message);  // Process the received message
+        float kp = message.substring(0, comma1).toFloat();
+        float ki = message.substring(comma1 + 1, comma2).toFloat();
+        float kd = message.substring(comma2 + 1, comma3).toFloat();
+        float setpoint = message.substring(comma3 + 1).toFloat();
+
+        Serial.print("Parsed PID: ");
+        Serial.print("Setpoint: "); Serial.print(setpoint);
+        Serial.print(" Kp: "); Serial.print(kp);
+        Serial.print(" Ki: "); Serial.print(ki);
+        Serial.print(" Kd: "); Serial.println(kd);
+
+        for (int i = 0; i < 4; i++) {
+            bool success = i2cMaster.sendData(SLAVE_ADDRESS_START + i, setpoint, kp, ki, kd);
+            if (!success) {
+                Serial.println("I2C communication failed!");
+            }
+        }
+    } else if (message.startsWith("SETPOINT:")) {
+        float setpoint = message.substring(9).toFloat();
+        Serial.print("Setpoint modtaget: ");
+        Serial.println(setpoint);
+        for (int i = 0; i < 4; i++) {
+            bool success = i2cMaster.sendData(SLAVE_ADDRESS_START + i, setpoint, -1, -1, -1);
+            if (!success) {
+                Serial.println("I2C communication failed!");
+            }
         }
     }
-    
-    delay(1);
 }
 
 void sendSensorData(WiFiClient &client) {
-    sBmx160SensorData_t Omagn, Ogyro, Oaccel;
-  
-    bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
+    sBmx160SensorData_t Omagn = {0, 0, 0};
+    sBmx160SensorData_t Ogyro = {0, 0, 0};
+    sBmx160SensorData_t Oaccel = {0, 0, 0};
+    //bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
 
     client.print("SENSOR:");
     client.print("Omagn: ");
@@ -72,9 +127,9 @@ void sendSensorData(WiFiClient &client) {
     client.print(Oaccel.x); client.print(", ");
     client.print(Oaccel.y); client.print(", ");
     client.print(Oaccel.z);
-    client.println(); // New line for better readability
+    client.println();
 
-    Serial.print("Sent sensor data: ");
+    Serial.print("Sendt sensor data: ");
     Serial.print("Omagn: ");
     Serial.print(Omagn.x); Serial.print(", ");
     Serial.print(Omagn.y); Serial.print(", ");
@@ -89,21 +144,5 @@ void sendSensorData(WiFiClient &client) {
     Serial.print(Oaccel.x); Serial.print(", ");
     Serial.print(Oaccel.y); Serial.print(", ");
     Serial.print(Oaccel.z);
-    Serial.println(); 
-
+    Serial.println();
 }
-
-void processClientMessage(String message) {
-    // Process the received message
-    Serial.print("Received: ");
-    Serial.println(message);
-
-    if (message == "START") {
-        logging = true;
-        Serial.println("Logging started!");
-    } else if (message == "STOP") {
-        logging = false;
-        Serial.println("Logging stopped!");
-    }
-}
-
