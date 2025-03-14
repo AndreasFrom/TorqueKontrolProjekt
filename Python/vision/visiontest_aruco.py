@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 
 # Load the image
-image = cv2.imread('aruco_20_10.jpg')
+image = cv2.imread('aruco_20_10_and_11.jpg')
 
 # Convert the image to grayscale
 gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -71,21 +71,55 @@ if ids is not None:
 
         
 
-        # Calculate real-world distances
-        real_world_distance = 0.25  # Define the real-world distance (e.g., 1 meter)
+        # Calculate real-world distances and save IDs with corresponding x and y values
+        real_world_distance = 0.22  # Define the real-world distance (e.g., 1 meter)
+        marker_locations = {}  # Dictionary to store marker locations
+
         for i in range(len(other_ids)):
             marker_point = other_corners[i][0].reshape(1, 1, -1)  # Get the first corner of the marker
-            print(marker_point)
             transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
             # Calculate distances in the real-world coordinate system
             distance_x = (transformed_center[1] / height) * real_world_distance
             distance_y = (transformed_center[0] / width) * real_world_distance
-            print(f"Marker ID {other_ids[i]} location: ({distance_x} meters, {distance_y} meters)")
+            marker_locations[other_ids[i][0]] = (distance_x, distance_y)
+            print(f"Marker ID {other_ids[i][0]} location: ({distance_x} meters, {distance_y} meters)")
+
+            # Define the radius in meters and convert to pixels
+            radius_meters = 0.1  # Example radius in meters
+            radius_pixels = int((radius_meters / real_world_distance) * height)
 
             # Write the marker ID and location on the warped image
-            text = f"ID {other_ids[i]}: ({distance_x:.2f}m, {distance_y:.2f}m)"
+            text = f"ID {other_ids[i][0]}: ({distance_x:.2f}m, {distance_y:.2f}m)"
             cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+
+            # Draw a circle if the marker ID is 11
+            if other_ids[i][0] == 11:
+                cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
+                circle_center = transformed_center  # Save the circle center for distance calculation
+
+        # Calculate distances of other points to the closest point on the circle perimeter
+        for i in range(len(other_ids)):
+            if other_ids[i][0] != 11:  # Skip the circle marker itself
+                marker_point = other_corners[i][0].reshape(1, 1, -1)
+                transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
+                
+                # Calculate distance to the circle center in meters
+                distance_to_center_x = (transformed_center[1] / height) * real_world_distance - (circle_center[1] / height) * real_world_distance
+                distance_to_center_y = (transformed_center[0] / width) * real_world_distance - (circle_center[0] / width) * real_world_distance
+                distance_to_center = np.sqrt(distance_to_center_x**2 + distance_to_center_y**2)
+                
+                # Calculate distance to the circle perimeter in meters
+                radius_meters = (radius_pixels / height) * real_world_distance
+                distance_to_perimeter = distance_to_center - radius_meters  # Subtract the radius to get the distance to the perimeter
+                
+                # Print or use the distance_to_perimeter as needed
+                print(f"Distance to perimeter for marker {other_ids[i][0]}: {distance_to_perimeter} meters")
+
+        # Save the marker locations to a file
+        with open('marker_locations.txt', 'w') as f:
+            for marker_id, location in marker_locations.items():
+                f.write(f"ID {marker_id}: ({location[0]}m, {location[1]}m)\n")
             
         # Save and display the warped image with other marker locations
         cv2.imwrite('warped_image_with_other_markers.jpg', warped_image)    
