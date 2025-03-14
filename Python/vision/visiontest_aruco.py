@@ -1,129 +1,154 @@
 import cv2
 import numpy as np
 
-# Load the image
-image = cv2.imread('aruco_20_10_and_11.jpg')
+# Open the video file
+video_path = 'aurco_video.mp4'
+cap = cv2.VideoCapture(video_path)
 
-# Convert the image to grayscale
-gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+# Check if the video was opened successfully
+if not cap.isOpened():
+    print("Error: Could not open video.")
+    exit()
+
+# Define the ArUco dictionary and parameters
 aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
 parameters = cv2.aruco.DetectorParameters()
-
-# Create the ArUco detector
 detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-# Detect the markers
-corners, ids, rejected = detector.detectMarkers(gray)
 
-# Check if we have detected any markers
-if ids is not None:
-    print("Detected markers:", ids)
+# Define the corner marker IDs
+corner_ids = [6, 7, 8, 9]
 
-    # Separate the desired markers and other markers
-    selected_corners = []
-    selected_ids = []
-    other_corners = []
-    other_ids = []
-    corner_ids = [6, 7, 8, 9]  # Define the corner marker IDs
+# Define the real-world distance and radius
+real_world_distance = 0.22  # Real-world distance in meters
+radius_meters = 0.1  # Radius of the circle in meters
 
-    for i in range(len(ids)):
-        if ids[i] in corner_ids:  # Check if the detected ID is in the desired list
-            selected_corners.append(corners[i][0])  # Append corners to the list
-            selected_ids.append(ids[i])  # Append ID to the list
-        else:
-            other_corners.append(corners[i][0])  # Append other corners
-            other_ids.append(ids[i])  # Append other IDs
+# Get video properties for VideoWriter
+frame_width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+frame_height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+fps = int(cap.get(cv2.CAP_PROP_FPS))
 
-    # Draw all detected markers on the original image
-    cv2.aruco.drawDetectedMarkers(image, corners, ids)
-    cv2.imwrite('image_with_marker_information.jpg', image)
+# Define the output video file
+output_path = 'output_video.mp4'
+fourcc = cv2.VideoWriter_fourcc(*'mp4v')  # Codec for MP4 format
+out = cv2.VideoWriter(output_path, fourcc, fps, (frame_width, frame_height))
 
-    print("Selected markers:", selected_ids)
-    print("Other markers:", other_ids)
+# Loop through each frame of the video
+while True:
+    # Read a frame from the video
+    ret, frame = cap.read()
+    if not ret:
+        break  # Exit the loop if no more frames are available
 
-    # If we have exactly four selected markers
-    if len(selected_corners) == 4:
-        # Flatten the list of corners (four lists of 4 points)
-        points = np.array([corner for corner in selected_corners], dtype=np.float32)
+    # Convert the frame to grayscale
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
 
-        # Sort the points to ensure correct order: top-left, top-right, bottom-right, bottom-left
-        sorted_points = points[np.argsort(points[:, 0, 0])]  # Sort by x-coordinate
-        left_points = sorted_points[:2]  # Two leftmost points
-        right_points = sorted_points[2:]  # Two rightmost points
+    # Detect the markers
+    corners, ids, rejected = detector.detectMarkers(gray)
 
-        # Sort left and right points by y-coordinate to get top and bottom
-        left_points = left_points[np.argsort(left_points[:, 0, 1])]
-        right_points = right_points[np.argsort(right_points[:, 0, 1])]
-        top_left, bottom_left = left_points
-        top_right, bottom_right = right_points
+    # Check if we have detected any markers
+    if ids is not None:
+        # Separate the desired markers and other markers
+        selected_corners = []
+        selected_ids = []
+        other_corners = []
+        other_ids = []
 
-        # Arrange the points in the correct order
-        ordered_points = np.array([top_left[0], top_right[0], bottom_right[0], bottom_left[0]], dtype=np.float32)
+        for i in range(len(ids)):
+            if ids[i] in corner_ids:  # Check if the detected ID is in the desired list
+                selected_corners.append(corners[i][0])  # Append corners to the list
+                selected_ids.append(ids[i])  # Append ID to the list
+            else:
+                other_corners.append(corners[i][0])  # Append other corners
+                other_ids.append(ids[i])  # Append other IDs
 
-        # Define the destination points in the output image
-        width, height = 400, 400  # Define the output image size
-        dst_points = np.array([[0, 0], [width-1, 0], [width-1, height-1], [0, height-1]], dtype=np.float32)
+        # Draw all detected markers on the frame
+        cv2.aruco.drawDetectedMarkers(frame, corners, ids)
 
-        # Get the perspective transform matrix
-        matrix = cv2.getPerspectiveTransform(ordered_points, dst_points)
+        # If we have exactly four selected markers
+        if len(selected_corners) == 4:
+            # Flatten the list of corners (four lists of 4 points)
+            points = np.array([corner for corner in selected_corners], dtype=np.float32)
 
-        # Apply the perspective transformation
-        warped_image = cv2.warpPerspective(image, matrix, (width, height))
+            # Sort the points to ensure correct order: top-left, top-right, bottom-right, bottom-left
+            sorted_points = points[np.argsort(points[:, 0, 0])]  # Sort by x-coordinate
+            left_points = sorted_points[:2]  # Two leftmost points
+            right_points = sorted_points[2:]  # Two rightmost points
 
-        
+            # Sort left and right points by y-coordinate to get top and bottom
+            left_points = left_points[np.argsort(left_points[:, 0, 1])]
+            right_points = right_points[np.argsort(right_points[:, 0, 1])]
+            top_left, bottom_left = left_points
+            top_right, bottom_right = right_points
 
-        # Calculate real-world distances and save IDs with corresponding x and y values
-        real_world_distance = 0.22  # Define the real-world distance (e.g., 1 meter)
-        marker_locations = {}  # Dictionary to store marker locations
+            # Arrange the points in the correct order
+            ordered_points = np.array([top_left[0], top_right[0], bottom_right[0], bottom_left[0]], dtype=np.float32)
 
-        for i in range(len(other_ids)):
-            marker_point = other_corners[i][0].reshape(1, 1, -1)  # Get the first corner of the marker
-            transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
-            # Calculate distances in the real-world coordinate system
-            distance_x = (transformed_center[1] / height) * real_world_distance
-            distance_y = (transformed_center[0] / width) * real_world_distance
-            marker_locations[other_ids[i][0]] = (distance_x, distance_y)
-            print(f"Marker ID {other_ids[i][0]} location: ({distance_x} meters, {distance_y} meters)")
+            # Define the destination points in the output image
+            width, height = 400, 400  # Define the output image size
+            dst_points = np.array([[0, 0], [width-1, 0], [width-1, height-1], [0, height-1]], dtype=np.float32)
 
-            # Define the radius in meters and convert to pixels
-            radius_meters = 0.1  # Example radius in meters
-            radius_pixels = int((radius_meters / real_world_distance) * height)
+            # Get the perspective transform matrix
+            matrix = cv2.getPerspectiveTransform(ordered_points, dst_points)
 
-            # Write the marker ID and location on the warped image
-            text = f"ID {other_ids[i][0]}: ({distance_x:.2f}m, {distance_y:.2f}m)"
-            cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+            # Apply the perspective transformation
+            warped_image = cv2.warpPerspective(frame, matrix, (width, height))
 
-            # Draw a circle if the marker ID is 11
-            if other_ids[i][0] == 11:
-                cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
-                circle_center = transformed_center  # Save the circle center for distance calculation
+            # Calculate real-world distances
+            marker_locations = {}  # Dictionary to store marker locations
 
-        # Calculate distances of other points to the closest point on the circle perimeter
-        for i in range(len(other_ids)):
-            if other_ids[i][0] != 11:  # Skip the circle marker itself
-                marker_point = other_corners[i][0].reshape(1, 1, -1)
+            for i in range(len(other_ids)):
+                marker_point = other_corners[i][0].reshape(1, 1, -1)  # Get the first corner of the marker
                 transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
-                
-                # Calculate distance to the circle center in meters
-                distance_to_center_x = (transformed_center[1] / height) * real_world_distance - (circle_center[1] / height) * real_world_distance
-                distance_to_center_y = (transformed_center[0] / width) * real_world_distance - (circle_center[0] / width) * real_world_distance
-                distance_to_center = np.sqrt(distance_to_center_x**2 + distance_to_center_y**2)
-                
-                # Calculate distance to the circle perimeter in meters
-                radius_meters = (radius_pixels / height) * real_world_distance
-                distance_to_perimeter = distance_to_center - radius_meters  # Subtract the radius to get the distance to the perimeter
-                
-                # Print or use the distance_to_perimeter as needed
-                print(f"Distance to perimeter for marker {other_ids[i][0]}: {distance_to_perimeter} meters")
+                # Calculate distances in the real-world coordinate system
+                distance_x = (transformed_center[1] / height) * real_world_distance
+                distance_y = (transformed_center[0] / width) * real_world_distance
+                marker_locations[other_ids[i][0]] = (distance_x, distance_y)
+                print(f"Marker ID {other_ids[i][0]} location: ({distance_x} meters, {distance_y} meters)")
 
-        # Save the marker locations to a file
-        with open('marker_locations.txt', 'w') as f:
-            for marker_id, location in marker_locations.items():
-                f.write(f"ID {marker_id}: ({location[0]}m, {location[1]}m)\n")
-            
-        # Save and display the warped image with other marker locations
-        cv2.imwrite('warped_image_with_other_markers.jpg', warped_image)    
-    else:
-        print("Not enough selected markers detected.")
-else:
-    print("No markers detected.")
+                # Convert radius to pixels
+                radius_pixels = int((radius_meters / real_world_distance) * height)
+
+                # Write the marker ID and location on the warped image
+                text = f"ID {other_ids[i][0]}: ({distance_x:.2f}m, {distance_y:.2f}m)"
+                cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+
+                # Draw a circle if the marker ID is 11
+                if other_ids[i][0] == 11:
+                    cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
+                    circle_center = transformed_center  # Save the circle center for distance calculation
+
+            # Calculate distances of other points to the closest point on the circle perimeter
+            if 'circle_center' in locals():  # Check if circle_center is defined
+                for i in range(len(other_ids)):
+                    if other_ids[i][0] != 11:  # Skip the circle marker itself
+                        marker_point = other_corners[i][0].reshape(1, 1, -1)
+                        transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
+                        
+                        # Calculate distance to the circle center in meters
+                        distance_to_center_x = (transformed_center[1] / height) * real_world_distance - (circle_center[1] / height) * real_world_distance
+                        distance_to_center_y = (transformed_center[0] / width) * real_world_distance - (circle_center[0] / width) * real_world_distance
+                        distance_to_center = np.sqrt(distance_to_center_x**2 + distance_to_center_y**2)
+                        
+                        # Calculate distance to the circle perimeter in meters
+                        radius_meters = (radius_pixels / height) * real_world_distance
+                        distance_to_perimeter = distance_to_center - radius_meters  # Subtract the radius to get the distance to the perimeter
+                        
+                        # Print or use the distance_to_perimeter as needed
+                        print(f"Distance to perimeter for marker {other_ids[i][0]}: {distance_to_perimeter} meters")
+            else:
+                print("Circle center not defined. Marker ID 11 not detected in this frame.")
+
+            # Resize the warped image to match the original frame size
+            warped_image_resized = cv2.resize(warped_image, (frame_width, frame_height))
+
+            # Write the warped frame to the output video
+            out.write(warped_image_resized)
+
+    # Write the original frame to the output video
+    out.write(frame)
+
+# Release the video capture and writer objects
+cap.release()
+out.release()
+print(f"Processed video saved to {output_path}")
