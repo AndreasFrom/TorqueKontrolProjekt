@@ -142,7 +142,6 @@ void loop() {
     pid.setSetpoint(i2cSlave.getSetpoint());
 
     // Update PID gains only if new values are available
-    
     if (i2cSlave.newPIDGainsAvailable) {
         pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
         i2cSlave.newPIDGainsAvailable = false; // Reset the flag
