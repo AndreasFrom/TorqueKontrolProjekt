@@ -28,12 +28,13 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 // Objects
 MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
-MotorSensor motorSensor(SENSOR_PIN, 5);
+MotorSensor motorSensor(SENSOR_PIN, CURRENT_SENSE, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
 I2CSlave i2cSlave;
 
 // Variables
 double currentRPM = 1;
+double currentCurrent = 0;
 int pwmValue = 0;
 volatile bool controlFlag = false; // Flag to indicate when to run the control logic
 bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are available
@@ -47,6 +48,7 @@ void controlLoop() {
         if (rawRPM > 2000) {rawRPM = 0;}
 
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
+        currentCurrent = motorSensor.getCurrentReading();
     }
 
     double output = pid.compute(currentRPM);
@@ -55,13 +57,18 @@ void controlLoop() {
 
     unsigned long timestamp = millis(); 
 
+    i2cSlave.setMessuredData(currentRPM, currentCurrent);
+    i2cSlave.setTimestamp(timestamp);
+
     Serial.print(timestamp); 
     Serial.print(",");
     Serial.print(motorSensor.getTimeBetweenSensors());
     Serial.print(",");
     Serial.print(currentRPM);
     Serial.print(",");
-    Serial.println(pwmValue);
+    Serial.print(pwmValue);
+    Serial.print(",");
+    Serial.println(currentCurrent);
 }
 
 void timerISR() {
@@ -108,7 +115,6 @@ void loop() {
     pid.setSetpoint(i2cSlave.getSetpointRPM());
 
     // Update PID gains only if new values are available
-    
     if (i2cSlave.newPIDGainsAvailable) {
         pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
         i2cSlave.newPIDGainsAvailable = false; // Reset the flag

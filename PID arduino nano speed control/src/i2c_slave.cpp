@@ -25,10 +25,22 @@ void I2CSlave::setSetpointRPM(double setpoint) {
     _setpointRPM = setpoint;
 }
 
-void I2CSlave::setPIDGains(double kp, double ki, double kd) {
+void I2CSlave::setMessuredData(double output, double current)
+{
+    _output = output;
+    _current = current;   
+}
+
+void I2CSlave::setPIDGains(double kp, double ki, double kd)
+{
     _kp = kp;
     _ki = ki;
     _kd = kd;
+}
+
+void I2CSlave::setTimestamp(unsigned long timestamp)
+{
+    _timestamp = timestamp;
 }
 
 double I2CSlave::getSetpointRPM() {
@@ -47,6 +59,10 @@ double I2CSlave::getKd() {
     return _kd;
 }
 
+double I2CSlave::getTimestamp()
+{
+    return _timestamp;
+}
 
 void I2CSlave::receiveEvent(int bytes) {
     if (instance && bytes >= 4) {  // Ensure enough data is received
@@ -71,9 +87,9 @@ void I2CSlave::receiveEvent(int bytes) {
 
 void I2CSlave::requestEvent() {
     if (instance) {
+        Wire.write((byte)(millis())); 
         Wire.write((byte)(instance->_setpointRPM / 10));
-        Wire.write((byte)(instance->_kp * 10));
-        Wire.write((byte)(instance->_ki * 10));
-        Wire.write((byte)(instance->_kd * 10));
+        Wire.write((byte)(instance->_output / 10)); 
+        Wire.write((byte)(instance->_current / 10));
     }
 }

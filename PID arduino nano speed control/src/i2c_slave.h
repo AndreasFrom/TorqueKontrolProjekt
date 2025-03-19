@@ -13,11 +13,15 @@ public:
     I2CSlave();
     void begin();
     void setSetpointRPM(double setpoint);
+    void setMode(int mode);
+    void setMessuredData(double output, double current);
     void setPIDGains(double kp, double ki, double kd);
+    void setTimestamp(unsigned long timestamp);
     double getSetpointRPM();
     double getKp();
     double getKi();
     double getKd();
+    double getTimestamp();
 
     bool newPIDGainsAvailable = false;
 
@@ -27,7 +31,9 @@ private:
     double _kp;
     double _ki;
     double _kd;
-    
+    double _output;
+    double _current;
+    unsigned long _timestamp;
 
     static void receiveEvent(int bytes);
     static void requestEvent();

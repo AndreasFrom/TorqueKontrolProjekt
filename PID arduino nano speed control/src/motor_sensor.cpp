@@ -2,13 +2,13 @@
 
 MotorSensor* MotorSensor::instance = nullptr;
 
-MotorSensor::MotorSensor(int pin, int filterSize)
-    : pin_(pin), filterSize_(filterSize), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
-    if (filterSize_ > MAX_FILTER_SIZE) {
-        filterSize_ = MAX_FILTER_SIZE;
+MotorSensor::MotorSensor(int pinSensor, int pinCurrent, int filterSize)
+    : _pinSensor(pinSensor), _pinCurrent(pinCurrent), _filterSize(filterSize), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
+    if (_filterSize > MAX_FILTER_SIZE) {
+        _filterSize = MAX_FILTER_SIZE;
     }
 
-    for (int i = 0; i < filterSize_; i++) {
+    for (int i = 0; i < _filterSize; i++) {
         rpmReadings[i] = 0;
     }
 
@@ -16,7 +16,8 @@ MotorSensor::MotorSensor(int pin, int filterSize)
 }
 
 void MotorSensor::begin() {
-    pinMode(pin_, INPUT);
+    pinMode(_pinSensor, INPUT);
+    pinMode(_pinCurrent, INPUT);
 }
 
 void MotorSensor::MotorSensorISR() {
@@ -34,13 +35,18 @@ unsigned long MotorSensor::getTimeBetweenSensors() {
     return timeBetweenSensors;
 }
 
+double MotorSensor::getCurrentReading()
+{
+    return analogRead(_pinCurrent); 
+}
+
 double MotorSensor::getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % filterSize_;
+    rpmIndex = (rpmIndex + 1) % _filterSize;
 
     double sum = 0;
-    for (int i = 0; i < filterSize_; i++) {
+    for (int i = 0; i < _filterSize; i++) {
         sum += rpmReadings[i];
     }
-    return sum / filterSize_;
+    return sum / _filterSize;
 }
