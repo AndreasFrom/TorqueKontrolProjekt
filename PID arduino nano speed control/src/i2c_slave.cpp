@@ -31,22 +31,10 @@ void I2CSlave::setSetpoint(double setpoint) {
     _setpoint = setpoint;
 }
 
-void I2CSlave::setMessuredData(double output, double current)
-{
-    _output = output;
-    _current = current;   
-}
-
-void I2CSlave::setPIDGains(double kp, double ki, double kd)
-{
+void I2CSlave::setPIDGains(double kp, double ki, double kd) {
     _kp = kp;
     _ki = ki;
     _kd = kd;
-}
-
-void I2CSlave::setTimestamp(unsigned long timestamp)
-{
-    _timestamp = timestamp;
 }
 
 void I2CSlave::setCtrlMode(char mode) {
