@@ -13,47 +13,72 @@
 #define CURRENT_SENSE A0
 
 // I2C address
-#define I2C_ADDRESS 0x08  
-
-// Moving average filter for RPM
-#define NUM_READINGS 5
-double rpmReadings[NUM_READINGS] = {0};
-int rpmIndex = 0;
+#define I2C_ADDRESS 0x08
 
 // Motor speed settings
 const int MIN_PWM = 0;
 const int MAX_PWM = 255;
 const double SAMPLE_TIME = 0.001; // 1ms sample time
 
-// Objects
-MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
-TimerInterrupt timer1;
-MotorSensor motorSensor(SENSOR_PIN, CURRENT_SENSE, 5);
-ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
-I2CSlave i2cSlave;
+// Physical dimensions
+#define WHEEL_DIA 0.068 //68mm
+#define PI 3.1415926535897932384626433832795
 
 // Variables
 double currentRPM = 1;
-double currentCurrent = 0;
+double currentTorque = 1; 
+double currentVelocity = 1;
+double motorCurrent = 1;
 int pwmValue = 0;
 volatile bool controlFlag = false; // Flag to indicate when to run the control logic
 bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are available
 int step = 0;
 
+// Objects
+MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
+TimerInterrupt timer1;
+MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 5);
+ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
+I2CSlave i2cSlave(currentVelocity, currentTorque, currentRPM, motorCurrent);
+
 void controlLoop() {
-    // Process sensor data and calculate RPM
+    // Process sensor data and calculate RPM, Velocity
     if (motorSensor.isSensorTriggered()) {
         motorSensor.resetSensorTriggered();
         double rawRPM = ((1e6*60.0) / 110) / (motorSensor.getTimeBetweenSensors());
         if (rawRPM > 2000) {rawRPM = 0;}
 
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
-        currentCurrent = motorSensor.getCurrentReading();
+        currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60; // Calculate velocity from RPM
     }
 
-    double output = pid.compute(currentRPM);
+    // Torque control
+    motorCurrent = motorSensor.getFilteredCurrent(motorSensor.getMotorCurrent());
+    currentTorque = 0.0981 * motorCurrent;
+
+    // Compute PID based on mode
+    double output = 0;
+    switch (i2cSlave.getCtrlMode()) {
+        case 0 : // Speed control
+            output = pid.compute(currentVelocity);
+            break;
+
+        case 1 : // Torque control
+            output = pid.compute(currentTorque);
+            break;
+
+        case 2 : // RPM control (Secret mode)
+            output = pid.compute(currentRPM);
+            break;
+
+        default:
+            output = 0;
+            break;
+    }
+    
     pwmValue = constrain(output, MIN_PWM, MAX_PWM);
     analogWrite(PWM_PIN, pwmValue);
+
 
     unsigned long timestamp = millis(); 
 
@@ -66,24 +91,15 @@ void controlLoop() {
     Serial.print(",");
     Serial.print(currentRPM);
     Serial.print(",");
-    Serial.print(pwmValue);
+    Serial.print(currentVelocity);
     Serial.print(",");
-    Serial.println(currentCurrent);
+    Serial.println(pwmValue);
+    Serial.print(",");
+    Serial.println(motorCurrent);
 }
 
 void timerISR() {
     controlFlag = true; // Set the flag in the ISR
-}
-
-double getFilteredRPM(double newRPM) {
-    rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % NUM_READINGS;
-
-    double sum = 0;
-    for (int i = 0; i < NUM_READINGS; i++) {
-        sum += rpmReadings[i];
-    }
-    return sum / NUM_READINGS;
 }
 
 void setup() {
@@ -101,7 +117,6 @@ void setup() {
 
     // Initialize I2C Slave
     i2cSlave.begin();
-      
 }
 
 void loop() {
@@ -112,7 +127,7 @@ void loop() {
     }
 
     // Update setpoint RPM
-    pid.setSetpoint(i2cSlave.getSetpointRPM());
+    pid.setSetpoint(i2cSlave.getSetpoint());
 
     // Update PID gains only if new values are available
     if (i2cSlave.newPIDGainsAvailable) {

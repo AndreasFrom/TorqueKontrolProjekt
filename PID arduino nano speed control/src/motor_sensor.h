@@ -7,23 +7,29 @@
 
 class MotorSensor {
 public:
-    MotorSensor(int pinSensor, int pinCurrent, int filterSize);
+    MotorSensor(int RPMpin, int filterSizeRPM, int currentSensePin, int filterSizeCurrent);
     void begin();
     static void MotorSensorISR();
     unsigned long getTimeBetweenSensors();
     double getCurrentReading();
     double getFilteredRPM(double newRPM);
+    double getFilteredCurrent(double newCurrent);
     bool isSensorTriggered() { return sensorTriggered; }
     void resetSensorTriggered() { sensorTriggered = false; }
+    double getMotorCurrent();
 
 private:
-    int _pinSensor;
-    int _pinCurrent;
-    int _filterSize;
+    int RPMpin_;
+    int filterSizeRPM_;
+    int currentSensePin_;
+    int filterSizeCurrent_;
+    double current_;
     volatile unsigned long lastTime = 1;
     volatile unsigned long timeBetweenSensors = 1;
     double rpmReadings[MAX_FILTER_SIZE];
     int rpmIndex;
+    double currentReadings[MAX_FILTER_SIZE];
+    int currentIndex;
     volatile bool sensorTriggered = false;
 
     static MotorSensor* instance; // Singleton instance for ISR
