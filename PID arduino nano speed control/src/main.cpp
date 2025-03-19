@@ -70,7 +70,7 @@ void controlLoop() {
             break;
 
         case 1 : // Torque control
-            // Implement later
+            output = pid.compute(currentTorque);
             break;
 
         case 2 : // RPM control (Secret mode)
