@@ -28,8 +28,8 @@ public:
 
 private:
     uint8_t _address;
-    double _setpoint;
     char _mode;
+    double _setpoint;
     double _kp;
     double _ki;
     double _kd;

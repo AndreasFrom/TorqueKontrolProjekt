@@ -25,6 +25,11 @@ const int MIN_PWM = 0;
 const int MAX_PWM = 255;
 const double SAMPLE_TIME = 0.001; // 1ms sample time
 
+// Physical dimensions
+#define WHEEL_DIA 0.068 //68mm
+double currentVelocity = 1;
+#define PI 3.1415926535897932384626433832795
+
 // Objects
 MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
@@ -47,9 +52,10 @@ void controlLoop() {
         if (rawRPM > 2000) {rawRPM = 0;}
 
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
+        currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60; // Calculate velocity from RPM
     }
 
-    double output = pid.compute(currentRPM);
+    double output = pid.compute(currentVelocity);
     pwmValue = constrain(output, MIN_PWM, MAX_PWM);
     analogWrite(PWM_PIN, pwmValue);
 
@@ -105,7 +111,7 @@ void loop() {
     }
 
     // Update setpoint RPM
-    pid.setSetpoint(i2cSlave.getSetpointRPM());
+    pid.setSetpoint(i2cSlave.getSetpoint());
 
     // Update PID gains only if new values are available
     

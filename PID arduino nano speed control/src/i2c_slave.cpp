@@ -82,6 +82,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 Serial.print("Received: Setpoint = ");
                 Serial.print(instance->_setpoint);
             }
+            Serial.print("Missing I2C data, B");
             break;
 
         default :
@@ -95,8 +96,14 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
 void I2CSlave::requestEvent() { // Send data to master
     if (instance) {
         Wire.write((byte)(instance->_setpoint / 10));
-        Wire.write((byte)(instance->_kp * 10));
-        Wire.write((byte)(instance->_ki * 10));
-        Wire.write((byte)(instance->_kd * 10));
+        
+        if(instance->_mode == 0){
+            //Wire.write((byte)());
+        }else{
+            
+        }
+        //Wire.write((byte)(instance->_kp * 10));
+        //Wire.write((byte)(instance->_ki * 10));
+        //Wire.write((byte)(instance->_kd * 10));
     }
 }
