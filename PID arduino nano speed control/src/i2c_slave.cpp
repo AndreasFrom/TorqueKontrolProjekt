@@ -2,12 +2,11 @@
 
 I2CSlave* I2CSlave::instance = nullptr;
 
-I2CSlave::I2CSlave() : _setpointRPM(0), _kp(0), _ki(0), _kd(0) {
+I2CSlave::I2CSlave() : _mode(0), _setpoint(0), _kp(0), _ki(0), _kd(0) {
     instance = this;
 }
 
 void I2CSlave::begin() {
-
     pinMode(DIPSWITCH_1, INPUT);
     pinMode(DIPSWITCH_2, INPUT);
     delay(1); 
@@ -16,13 +15,11 @@ void I2CSlave::begin() {
 
     Wire.begin(_address);
     Wire.onReceive(receiveEvent);
-    Wire.onRequest(requestEvent);
-
-    
+    Wire.onRequest(requestEvent); 
 }
 
-void I2CSlave::setSetpointRPM(double setpoint) {
-    _setpointRPM = setpoint;
+void I2CSlave::setSetpoint(double setpoint) {
+    _setpoint = setpoint;
 }
 
 void I2CSlave::setPIDGains(double kp, double ki, double kd) {
@@ -35,8 +32,8 @@ void I2CSlave::setCtrlMode(char mode) {
     _mode = (0 <= mode && mode <= 1 ? mode : 0); // Validate input
 }
 
-double I2CSlave::getSetpointRPM() {
-    return _setpointRPM;
+double I2CSlave::getSetpoint() {
+    return _setpoint;
 }
 
 double I2CSlave::getKp() {
@@ -51,31 +48,53 @@ double I2CSlave::getKd() {
     return _kd;
 }
 
+char I2CSlave::getCtrlMode() {
+    return _mode;
+}
 
 void I2CSlave::receiveEvent(int bytes) { // Read data from master
-    if (instance && bytes >= 4) {  // Ensure enough data is received
-        instance->_setpointRPM = Wire.read() * 10;  // Scale back
-        instance->_kp = Wire.read() / 10.0;
-        instance->_ki = Wire.read() / 10.0;
-        instance->_kd = Wire.read() / 10.0;
+    switch(Wire.read()){
+        case CMD_SetPIDParam :
+            if (bytes == 5){
+                instance->_mode = Wire.read();
+                instance->_kp = Wire.read() / 10.0;
+                instance->_ki = Wire.read() / 10.0;
+                instance->_kd = Wire.read() / 10.0;
 
-        instance->newPIDGainsAvailable = true; // Set the flag to indicate new gains are available
+                instance->newPIDGainsAvailable = true; // Set the flag to indicate new gains are available
+                
+                Serial.print("Received: Mode = ");
+                Serial.print(instance->_mode);
+                Serial.print(", Kp = ");
+                Serial.print(instance->_kp);
+                Serial.print(", Ki = ");
+                Serial.print(instance->_ki);
+                Serial.print(", Kd = ");
+                Serial.println(instance->_kd);
+            }
+            Serial.print("Missing I2C data, A");
+            break;
 
-        Serial.print("Received: Setpoint = ");
-        Serial.print(instance->_setpointRPM);
-        Serial.print(", Kp = ");
-        Serial.print(instance->_kp);
-        Serial.print(", Ki = ");
-        Serial.print(instance->_ki);
-        Serial.print(", Kd = ");
-        Serial.println(instance->_kd);
+        case CMD_SetPIDSetpoint :
+            if (bytes == 2){
+                instance->_setpoint = Wire.read() * 10;  // Scale back
+
+                Serial.print("Received: Setpoint = ");
+                Serial.print(instance->_setpoint);
+            }
+            break;
+
+        default :
+            Serial.print("Invalid CMD byte received");
+            break;
+
     }
 }
 
 
 void I2CSlave::requestEvent() { // Send data to master
     if (instance) {
-        Wire.write((byte)(instance->_setpointRPM / 10));
+        Wire.write((byte)(instance->_setpoint / 10));
         Wire.write((byte)(instance->_kp * 10));
         Wire.write((byte)(instance->_ki * 10));
         Wire.write((byte)(instance->_kd * 10));
