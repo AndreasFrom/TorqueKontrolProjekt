@@ -45,7 +45,7 @@ bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are availab
 int step = 0;
 
 void controlLoop() {
-    // Process sensor data and calculate RPM
+    // Process sensor data and calculate RPM, Velocity
     if (motorSensor.isSensorTriggered()) {
         motorSensor.resetSensorTriggered();
         double rawRPM = ((1e6*60.0) / 110) / (motorSensor.getTimeBetweenSensors());
@@ -55,9 +55,29 @@ void controlLoop() {
         currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60; // Calculate velocity from RPM
     }
 
-    double output = pid.compute(currentVelocity);
+    // Compute PID based on mode
+    double output = 0;
+    switch (i2cSlave.getCtrlMode()) {
+        case 0 : // Speed control
+            output = pid.compute(currentVelocity);
+            break;
+
+        case 1 : // Torque control
+            // Implement later
+            break;
+
+        case 2 : // RPM control (Secret mode)
+            output = pid.compute(currentRPM);
+            break;
+
+        default:
+            output = 0;
+            break;
+    }
+    
     pwmValue = constrain(output, MIN_PWM, MAX_PWM);
     analogWrite(PWM_PIN, pwmValue);
+
 
     unsigned long timestamp = millis(); 
 
@@ -66,6 +86,8 @@ void controlLoop() {
     Serial.print(motorSensor.getTimeBetweenSensors());
     Serial.print(",");
     Serial.print(currentRPM);
+    Serial.print(",");
+    Serial.print(currentVelocity);
     Serial.print(",");
     Serial.println(pwmValue);
 }

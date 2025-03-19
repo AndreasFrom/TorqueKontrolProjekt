@@ -29,7 +29,7 @@ void I2CSlave::setPIDGains(double kp, double ki, double kd) {
 }
 
 void I2CSlave::setCtrlMode(char mode) {
-    _mode = (0 <= mode && mode <= 1 ? mode : 0); // Validate input
+    _mode = mode;
 }
 
 double I2CSlave::getSetpoint() {
