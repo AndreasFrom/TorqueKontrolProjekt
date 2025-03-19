@@ -14,6 +14,7 @@ public:
     double getFilteredRPM(double newRPM);
     bool isSensorTriggered() { return sensorTriggered; }
     void resetSensorTriggered() { sensorTriggered = false; }
+    char getMotorCurrent(void);
 
 private:
     int pin_;
