@@ -60,12 +60,15 @@ void processClientMessage(String message) {
     Serial.println(message);
 
     if (message == "START") {
+        client.println("ACK:START");
         logging = true;
         Serial.println("Logging started!");
     } else if (message == "STOP") {
+        client.println("ACK:STOP");
         logging = false;
         Serial.println("Logging stopped!");
     } else if (message.startsWith("PID:")) {
+        client.println("ACK:PID");
         message.remove(0, 4);
         int comma1 = message.indexOf(',');
         int comma2 = message.indexOf(',', comma1 + 1);
@@ -94,6 +97,7 @@ void processClientMessage(String message) {
             }
         }
     } else if (message.startsWith("SETPOINT:")) {
+        client.println("ACK:SETPOINT");
         float setpoint = message.substring(9).toFloat();
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
