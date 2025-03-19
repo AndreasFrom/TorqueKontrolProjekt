@@ -97,10 +97,20 @@ void I2CSlave::requestEvent() { // Send data to master
     if (instance) {
         Wire.write((byte)(instance->_setpoint / 10));
         
-        if(instance->_mode == 0){
+        switch (instance->_mode){
+            case 0 : // Speed
             //Wire.write((byte)());
-        }else{
-            
+            break;
+
+            case 1 : // Torque
+            break;
+
+            case 2 : // RPM (Secret mode)
+            break;
+
+            default :
+            Wire.write(0xFF);
+            break;
         }
         //Wire.write((byte)(instance->_kp * 10));
         //Wire.write((byte)(instance->_ki * 10));
