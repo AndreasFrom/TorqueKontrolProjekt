@@ -2,21 +2,27 @@
 
 MotorSensor* MotorSensor::instance = nullptr;
 
-MotorSensor::MotorSensor(int pin, int filterSize, int currentSensePin)
-    : pin_(pin), filterSize_(filterSize), currentSensePin_(currentSensePin), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
-    if (filterSize_ > MAX_FILTER_SIZE) {
-        filterSize_ = MAX_FILTER_SIZE;
+MotorSensor::MotorSensor(int RPMpin, int filterSizeRPM, int currentSensePin, int filterSizeCurrent)
+    : RPMpin_(RPMpin), filterSizeRPM_(filterSizeRPM), currentSensePin_(currentSensePin), filterSizeCurrent_(filterSizeCurrent) , lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
+    if (filterSizeRPM_ > MAX_FILTER_SIZE) {
+        filterSizeRPM_ = MAX_FILTER_SIZE;
+    }
+    if (filterSizeCurrent_ > MAX_FILTER_SIZE) {
+        filterSizeCurrent_ = MAX_FILTER_SIZE;
     }
 
-    for (int i = 0; i < filterSize_; i++) {
+    for (int i = 0; i < filterSizeRPM_; i++) {
         rpmReadings[i] = 0;
+    }
+    for (int i = 0; i < filterSizeCurrent_; i++) {
+        currentReadings[i] = 0;
     }
 
     instance = this; // Set the singleton instance
 }
 
 void MotorSensor::begin() {
-    pinMode(pin_, INPUT);
+    pinMode(RPMpin_, INPUT);
 }
 
 void MotorSensor::MotorSensorISR() {
@@ -36,13 +42,24 @@ unsigned long MotorSensor::getTimeBetweenSensors() {
 
 double MotorSensor::getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % filterSize_;
+    rpmIndex = (rpmIndex + 1) % filterSizeRPM_;
 
     double sum = 0;
-    for (int i = 0; i < filterSize_; i++) {
+    for (int i = 0; i < filterSizeRPM_; i++) {
         sum += rpmReadings[i];
     }
-    return sum / filterSize_;
+    return sum / filterSizeRPM_;
+}
+
+double MotorSensor::getFilteredCurrent(double newCurrent){
+    currentReadings[currentIndex] = newCurrent;
+    currentIndex = (currentIndex + 1) % filterSizeCurrent_;
+
+    double sum = 0;
+    for (int i = 0; i < filterSizeCurrent_; i++) {
+        sum += currentReadings[i];
+    }
+    return sum / filterSizeCurrent_;
 }
 
 double MotorSensor::getMotorCurrent() {

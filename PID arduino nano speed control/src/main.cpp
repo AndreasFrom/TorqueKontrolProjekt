@@ -17,8 +17,8 @@
 
 // Moving average filter for RPM
 #define NUM_READINGS 5
-double rpmReadings[NUM_READINGS] = {0};
-int rpmIndex = 0;
+//double rpmReadings[NUM_READINGS] = {0};
+//int rpmIndex = 0;
 
 // Motor speed settings
 const int MIN_PWM = 0;
@@ -42,7 +42,7 @@ int step = 0;
 // Objects
 MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
-MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE);
+MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
 I2CSlave i2cSlave(currentVelocity, currentTorque, currentRPM, motorCurrent);
 
@@ -59,7 +59,7 @@ void controlLoop() {
 
     // Torque control
     // Implement later, needs filtering
-    motorCurrent = motorSensor.getMotorCurrent();
+    motorCurrent = motorSensor.getFilteredCurrent(motorSensor.getMotorCurrent());
     currentTorque = 0.0981 * motorCurrent;
 
     // Compute PID based on mode
@@ -103,17 +103,6 @@ void controlLoop() {
 
 void timerISR() {
     controlFlag = true; // Set the flag in the ISR
-}
-
-double getFilteredRPM(double newRPM) {
-    rpmReadings[rpmIndex] = newRPM;
-    rpmIndex = (rpmIndex + 1) % NUM_READINGS;
-
-    double sum = 0;
-    for (int i = 0; i < NUM_READINGS; i++) {
-        sum += rpmReadings[i];
-    }
-    return sum / NUM_READINGS;
 }
 
 void setup() {
