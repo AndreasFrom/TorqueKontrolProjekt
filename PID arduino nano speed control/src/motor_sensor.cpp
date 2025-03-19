@@ -2,8 +2,8 @@
 
 MotorSensor* MotorSensor::instance = nullptr;
 
-MotorSensor::MotorSensor(int pin, int filterSize)
-    : pin_(pin), filterSize_(filterSize), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
+MotorSensor::MotorSensor(int pin, int filterSize, int currentSensePin)
+    : pin_(pin), filterSize_(filterSize), currentSensePin_(currentSensePin), lastTime(0), timeBetweenSensors(0), rpmIndex(0) {
     if (filterSize_ > MAX_FILTER_SIZE) {
         filterSize_ = MAX_FILTER_SIZE;
     }
@@ -45,8 +45,11 @@ double MotorSensor::getFilteredRPM(double newRPM) {
     return sum / filterSize_;
 }
 
-char MotorSensor::getMotorCurrent(void) {
-    // Will be implemented later
-    // 1.1V/A
-    return 10;
+double MotorSensor::getMotorCurrent() {
+    //Sensor resolution: 1.1V/A
+    int sensorVal = analogRead(currentSensePin_);
+    current_ = (((sensorVal * 5.0) / 1023.0) / 1.1);
+    Serial.print("Current: "); 
+    Serial.println(current_);
+    return current_;
 }
