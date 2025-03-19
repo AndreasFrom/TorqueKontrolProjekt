@@ -13,12 +13,7 @@
 #define CURRENT_SENSE A0
 
 // I2C address
-#define I2C_ADDRESS 0x08  
-
-// Moving average filter for RPM
-#define NUM_READINGS 5
-//double rpmReadings[NUM_READINGS] = {0};
-//int rpmIndex = 0;
+#define I2C_ADDRESS 0x08
 
 // Motor speed settings
 const int MIN_PWM = 0;
@@ -58,7 +53,6 @@ void controlLoop() {
     }
 
     // Torque control
-    // Implement later, needs filtering
     motorCurrent = motorSensor.getFilteredCurrent(motorSensor.getMotorCurrent());
     currentTorque = 0.0981 * motorCurrent;
 
@@ -120,7 +114,6 @@ void setup() {
 
     // Initialize I2C Slave
     i2cSlave.begin();
-      
 }
 
 void loop() {
