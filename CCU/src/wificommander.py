@@ -31,18 +31,32 @@ def close_csv_file():
         csv_file.close()
 
 def send_command(command):
-    """Send a command to the Arduino."""
+    """Send a command to the Arduino and wait for acknowledgments and follow-ups."""
     global sock
     try:
         if sock is None:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.settimeout(5)  # Set a timeout for receiving data
+            sock.settimeout(5)  # Set timeout
             sock.connect((TCP_IP, TCP_PORT))
 
         sock.send(f"{command}\n".encode())
         print(f"Sent command: {command}")
+        text_box.insert(tk.END, f"Sent command: {command}\n")
+        text_box.see(tk.END)  # Scroll to the bottom
+
+        # Wait for initial acknowledgment
+        ack = sock.recv(1024).decode().strip()
+        if ack.startswith("ACK:"):
+            print(f"Acknowledgment received: {ack}")
+            text_box.insert(tk.END, f"Acknowledgment received: {ack}\n")
+        elif ack.startswith("ERROR:"):
+            print(f"Error from Arduino: {ack}")
+            text_box.insert(tk.END, f"Error from Arduino: {ack}\n")
+            return  # Stop if there's an error
+
     except Exception as e:
         messagebox.showerror("Error", f"Failed to send {command} command: {e}")
+
 
 def start_logging():
     """Start logging by sending the START command."""
@@ -124,7 +138,7 @@ def receive_data():
                                 }
 
                                 # Display the data in the text box
-                                text_box.insert(tk.END, f"{timestamp} - {sensor_values}\n")
+                                text_box.insert(tk.END, f"{timestamp} Logged data\n")
                                 text_box.see(tk.END)  # Scroll to the bottom
 
                                 csv_writer.writerow([
