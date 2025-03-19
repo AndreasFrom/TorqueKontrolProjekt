@@ -30,19 +30,21 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 double currentVelocity = 1;
 #define PI 3.1415926535897932384626433832795
 
+// Variables
+double currentRPM = 1;
+double currentTorque = 1; 
+double motorCurrent = 1;
+int pwmValue = 0;
+volatile bool controlFlag = false; // Flag to indicate when to run the control logic
+bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are available
+int step = 0;
+
 // Objects
 MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
-I2CSlave i2cSlave;
-
-// Variables
-double currentRPM = 1;
-int pwmValue = 0;
-volatile bool controlFlag = false; // Flag to indicate when to run the control logic
-bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are available
-int step = 0;
+I2CSlave i2cSlave(currentVelocity, currentTorque, currentRPM, motorCurrent);
 
 void controlLoop() {
     // Process sensor data and calculate RPM, Velocity
@@ -54,6 +56,10 @@ void controlLoop() {
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
         currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60; // Calculate velocity from RPM
     }
+
+    // Torque control
+    // Implement later
+    motorCurrent = motorSensor.getMotorCurrent();
 
     // Compute PID based on mode
     double output = 0;

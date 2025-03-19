@@ -13,7 +13,7 @@
 
 class I2CSlave {
 public:
-    I2CSlave();
+    I2CSlave(double& currentVelocity, double& currentTorque, double& currentRPM, double& motorCurrent);
     void begin();
     void setSetpoint(double setpoint);
     void setPIDGains(double kp, double ki, double kd);
@@ -28,6 +28,10 @@ public:
 
 private:
     uint8_t _address;
+    const double& _currentVelocity;
+    const double& _currentTorque;
+    const double& _currentRPM;
+    const double& _motorCurrent;
     char _mode;
     double _setpoint;
     double _kp;

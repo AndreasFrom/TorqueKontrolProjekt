@@ -2,7 +2,16 @@
 
 I2CSlave* I2CSlave::instance = nullptr;
 
-I2CSlave::I2CSlave() : _mode(0), _setpoint(0), _kp(0), _ki(0), _kd(0) {
+I2CSlave::I2CSlave(double& currentVelocity, double& currentTorque, double& currentRPM, double& motorCurrent) : 
+    _currentVelocity(currentVelocity), 
+    _currentTorque(currentTorque), 
+    _currentRPM(currentRPM), 
+    _motorCurrent(motorCurrent),
+    _mode(0), 
+    _setpoint(0), 
+    _kp(0), 
+    _ki(0), 
+    _kd(0) {
     instance = this;
 }
 
@@ -72,7 +81,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 Serial.print(", Kd = ");
                 Serial.println(instance->_kd);
             }
-            Serial.print("Missing I2C data, A");
+            Serial.print("Missing I2C data");
             break;
 
         case CMD_SetPIDSetpoint :
@@ -82,7 +91,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 Serial.print("Received: Setpoint = ");
                 Serial.print(instance->_setpoint);
             }
-            Serial.print("Missing I2C data, B");
+            Serial.print("Missing I2C data");
             break;
 
         default :
@@ -95,25 +104,29 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
 
 void I2CSlave::requestEvent() { // Send data to master
     if (instance) {
+        // Return Setpoint
         Wire.write((byte)(instance->_setpoint / 10));
-        
+
+        // Return measured Speed/Torque/RPM
         switch (instance->_mode){
             case 0 : // Speed
-            //Wire.write((byte)());
-            break;
+                Wire.write((byte)(instance->_currentVelocity));
+                break;
 
             case 1 : // Torque
-            break;
+                Wire.write((byte)(instance->_currentTorque));
+                break;
 
             case 2 : // RPM (Secret mode)
-            break;
+                Wire.write((byte)(instance->_currentRPM));
+                break;
 
             default :
-            Wire.write(0xFF);
-            break;
+                Wire.write(0xFF);
+                break;
         }
-        //Wire.write((byte)(instance->_kp * 10));
-        //Wire.write((byte)(instance->_ki * 10));
-        //Wire.write((byte)(instance->_kd * 10));
+
+        // Return current
+        Wire.write((byte)(instance->_motorCurrent));
     }
 }
