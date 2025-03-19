@@ -22,12 +22,12 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 
 // Physical dimensions
 #define WHEEL_DIA 0.068 //68mm
-double currentVelocity = 1;
 #define PI 3.1415926535897932384626433832795
 
 // Variables
 double currentRPM = 1;
 double currentTorque = 1; 
+double currentVelocity = 1;
 double motorCurrent = 1;
 int pwmValue = 0;
 volatile bool controlFlag = false; // Flag to indicate when to run the control logic
