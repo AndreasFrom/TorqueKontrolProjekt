@@ -60,6 +60,7 @@ void controlLoop() {
     // Torque control
     // Implement later, needs filtering
     motorCurrent = motorSensor.getMotorCurrent();
+    currentTorque = 0.0981 * motorCurrent;
 
     // Compute PID based on mode
     double output = 0;
