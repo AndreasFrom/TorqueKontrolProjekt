@@ -8,8 +8,8 @@
       "args": [],
       "stopAtEntry": false,
       "externalConsole": true,
-      "cwd": ".",
-      "program": "build/Debug/outDebug",
+      "cwd": "c:/Users/purpl/Desktop/Bac/TorqueKontrolProjekt/PID arduino nano speed control/src",
+      "program": "c:/Users/purpl/Desktop/Bac/TorqueKontrolProjekt/PID arduino nano speed control/src/build/Debug/outDebug",
       "MIMode": "gdb",
       "miDebuggerPath": "gdb",
       "setupCommands": [
