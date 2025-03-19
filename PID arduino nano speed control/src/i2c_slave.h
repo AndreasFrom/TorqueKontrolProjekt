@@ -14,6 +14,7 @@ public:
     void begin();
     void setSetpointRPM(double setpoint);
     void setPIDGains(double kp, double ki, double kd);
+    void setCtrlMode(char mode);
     double getSetpointRPM();
     double getKp();
     double getKi();
@@ -24,6 +25,7 @@ public:
 private:
     uint8_t _address;
     double _setpointRPM;
+    char _mode;
     double _kp;
     double _ki;
     double _kd;

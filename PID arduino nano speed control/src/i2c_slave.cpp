@@ -31,6 +31,10 @@ void I2CSlave::setPIDGains(double kp, double ki, double kd) {
     _kd = kd;
 }
 
+void I2CSlave::setCtrlMode(char mode) {
+    _mode = (0 <= mode && mode <= 1 ? mode : 0); // Validate input
+}
+
 double I2CSlave::getSetpointRPM() {
     return _setpointRPM;
 }
@@ -48,7 +52,7 @@ double I2CSlave::getKd() {
 }
 
 
-void I2CSlave::receiveEvent(int bytes) {
+void I2CSlave::receiveEvent(int bytes) { // Read data from master
     if (instance && bytes >= 4) {  // Ensure enough data is received
         instance->_setpointRPM = Wire.read() * 10;  // Scale back
         instance->_kp = Wire.read() / 10.0;
@@ -69,7 +73,7 @@ void I2CSlave::receiveEvent(int bytes) {
 }
 
 
-void I2CSlave::requestEvent() {
+void I2CSlave::requestEvent() { // Send data to master
     if (instance) {
         Wire.write((byte)(instance->_setpointRPM / 10));
         Wire.write((byte)(instance->_kp * 10));

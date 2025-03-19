@@ -45,8 +45,7 @@ double MotorSensor::getFilteredRPM(double newRPM) {
     return sum / filterSize_;
 }
 
-char MotorSensor::getMotorCurrent(void)
-{
+char MotorSensor::getMotorCurrent(void) {
     // Will be implemented later
     // 1.1V/A
     return 10;
