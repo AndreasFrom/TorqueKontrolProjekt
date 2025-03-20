@@ -4,6 +4,9 @@
 #include "wifihandler.h"
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
+#include "databuffer.h"
+
+#define SEND_DATA_SERIAL 1
 
 // I2C Config
 #define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
@@ -11,10 +14,14 @@
 // WiFi Config
 WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 WiFiClient client;
+// data buffer
+DataBuffer dataBuffer;
+// I2C
 I2CMaster i2cMaster;
 
 //DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
+
 
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
@@ -112,42 +119,39 @@ void processClientMessage(String message) {
 }
 
 void sendSensorData(WiFiClient &client) {
-    sBmx160SensorData_t Omagn = {0, 0, 0};
     sBmx160SensorData_t Ogyro = {0, 0, 0};
     sBmx160SensorData_t Oaccel = {0, 0, 0};
-    //bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
+    //bmx160.getGyroACC(&Ogyro, &Oaccel);
 
+    // Create struct to hold sensor data
+    dataBlock data;
+
+    // Check if data is avaliable in queue
+    if()
     client.print("SENSOR:");
-    client.print("Omagn: ");
-    client.print(Omagn.x); client.print(", ");
-    client.print(Omagn.y); client.print(", ");
-    client.print(Omagn.z); client.print(" | ");
-
-    client.print("Ogyro: ");
-    client.print(Ogyro.x); client.print(", ");
-    client.print(Ogyro.y); client.print(", ");
-    client.print(Ogyro.z); client.print(" | ");
-
     client.print("Oaccel: ");
     client.print(Oaccel.x); client.print(", ");
     client.print(Oaccel.y); client.print(", ");
-    client.print(Oaccel.z);
+    client.print("Ogyro: ");
+    client.print(Ogyro.z); client.print(" | ");
     client.println();
 
-    Serial.print("Sendt sensor data: ");
-    Serial.print("Omagn: ");
-    Serial.print(Omagn.x); Serial.print(", ");
-    Serial.print(Omagn.y); Serial.print(", ");
-    Serial.print(Omagn.z); Serial.print(" | ");
+    if(SEND_DATA_SERIAL){
+        Serial.print("Sendt sensor data: ");
+        Serial.print("Omagn: ");
+        Serial.print(Omagn.x); Serial.print(", ");
+        Serial.print(Omagn.y); Serial.print(", ");
+        Serial.print(Omagn.z); Serial.print(" | ");
 
-    Serial.print("Ogyro: ");
-    Serial.print(Ogyro.x); Serial.print(", ");
-    Serial.print(Ogyro.y); Serial.print(", ");
-    Serial.print(Ogyro.z); Serial.print(" | ");
+        Serial.print("Ogyro: ");
+        Serial.print(Ogyro.x); Serial.print(", ");
+        Serial.print(Ogyro.y); Serial.print(", ");
+        Serial.print(Ogyro.z); Serial.print(" | ");
 
-    Serial.print("Oaccel: ");
-    Serial.print(Oaccel.x); Serial.print(", ");
-    Serial.print(Oaccel.y); Serial.print(", ");
-    Serial.print(Oaccel.z);
-    Serial.println();
+        Serial.print("Oaccel: ");
+        Serial.print(Oaccel.x); Serial.print(", ");
+        Serial.print(Oaccel.y); Serial.print(", ");
+        Serial.print(Oaccel.z);
+        Serial.println();
+    }
 }

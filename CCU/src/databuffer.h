@@ -5,6 +5,7 @@
 #include <queue>
 #include <Wire.h>
 
+// Define data structure for logging
 struct dataBlock {
     // Timestamp
     //uint8_t setpoint;
