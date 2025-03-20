@@ -1,8 +1,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <queue>
-
-#include "wifihandler.h"
+#include "AGTimerR4.h" //https://github.com/washiyamagiken/AGTimer_R4_Library/tree/main
+#include "wifihandler.h" 
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
 #include "databuffer.h"
@@ -19,12 +19,14 @@ WiFiClient client;
 DataBuffer dataBuffer;
 // I2C
 I2CMaster i2cMaster;
+// IMU
+DFRobot_BMX160 bmx160(&Wire);
 
 //DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
 
 volatile bool controlFlag = false; // Flag to indicate when to run the control loop
-const double SAMPLE_TIME = 10000; // 10ms sample time
+const double SAMPLE_FREQ = 100.0; // 10ms sample time
 
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
@@ -32,6 +34,11 @@ void processClientMessage(String message);
 
 void timerISR() {
     controlFlag = true; // Set the flag in the ISR
+    //Perform measurements and add to queue
+    sBmx160SensorData_t Ogyro = {0, 0, 0};
+    sBmx160SensorData_t Oaccel = {0, 0, 0};
+    bmx160.getGyroACC(&Ogyro, &Oaccel);
+    dataBuffer.addData({Oaccel.x, Oaccel.y, Ogyro.z});
 }
 
 void setup() {
@@ -41,13 +48,13 @@ void setup() {
     wifiHandler.startTCPServer();
 
     // Initialize Timer1 to trigger every 10ms
-    //Timer1.initialize(SAMPLE_TIME);
-    //Timer1.attachInterrupt(timerISR); // 10ms in microseconds
+    AGTimer.init(SAMPLE_FREQ, timerISR);
+    AGTimer.start();
 
-    /*if (!bmx160.begin()) {
+    if (!bmx160.begin()) {
         Serial.println("Sensor init fejlede!");
         while (1);
-    }*/
+    }
 }
 
 void loop() {
@@ -130,9 +137,6 @@ void processClientMessage(String message) {
 }
 
 void sendSensorData(WiFiClient &client) {
-    sBmx160SensorData_t Ogyro = {0, 0, 0};
-    sBmx160SensorData_t Oaccel = {0, 0, 0};
-    //bmx160.getGyroACC(&Ogyro, &Oaccel);
 
     // Create struct to hold sensor data
     dataBlock data;

@@ -10,9 +10,9 @@ struct dataBlock {
     // Timestamp
     //uint8_t setpoint;
     //uint8_t setpoint_radius;
-    int16_t acc_x;
-    int16_t acc_y;
-    int16_t gyro_z;
+    float acc_x;
+    float acc_y;
+    float gyro_z;
     // Motor Unit data
 };
 
