@@ -32,12 +32,14 @@ void processClientMessage(String message);
 
 void timerISR() {
     //controlFlag = true; // Set the flag in the ISR
-    //Perform measurements and add to queue
-    unsigned long timestamp = millis();
-    sBmx160SensorData_t Ogyro = {0, 0, 0};
-    sBmx160SensorData_t Oaccel = {0, 0, 0};
-    bmx160.getGyroACC(&Ogyro, &Oaccel);
-    dataBuffer.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
+    if(logging){
+        //Perform measurements and add to queue
+        unsigned long timestamp = millis();
+        sBmx160SensorData_t Ogyro = {0, 0, 0};
+        sBmx160SensorData_t Oaccel = {0, 0, 0};
+        bmx160.getGyroACC(&Ogyro, &Oaccel);
+        dataBuffer.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
+    }
 }
 
 void setup() {
