@@ -42,6 +42,11 @@ bool SDLogger::getData(dataBlock &data) {
             return false;
         }
         _fileOpenForRead = true;
+        
+        // Skip the header line
+        if (_dataFile.available()) {
+            _dataFile.readStringUntil('\n');
+        }
     }
     
     if(_dataFile.available()){
