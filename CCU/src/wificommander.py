@@ -6,7 +6,8 @@ import csv
 from datetime import datetime
 
 # TCP Configuration
-TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
+#TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
+TCP_IP = "192.168.164.97"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -15,6 +16,8 @@ sock = None
 csv_file = None
 csv_writer = None
 
+debug = False
+
 def create_csv_file():
     """Create a CSV file with a timestamped filename."""
     global csv_file, csv_writer
@@ -22,7 +25,7 @@ def create_csv_file():
     filename = f"sensor_data_{timestamp}.csv"
     csv_file = open(filename, mode="w", newline="")
     csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(["Timestamp", "Omagn_x", "Omagn_y", "Omagn_z", "Ogyro_x", "Ogyro_y", "Ogyro_z", "Oaccel_x", "Oaccel_y", "Oaccel_z"])
+    csv_writer.writerow(["Timestamp", "Oaccel_x", "Oaccel_y", "Ogyro_z"])
 
 def close_csv_file():
     """Close the CSV file."""
@@ -110,20 +113,25 @@ def receive_data():
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)  # Split at the first newline
                     line = line.strip()  # Remove leading/trailing whitespace
-                    
+                    if debug: print(f"Received line: {line}")  # Debug print
+
                     if line.startswith("TIME:"):
                         time_block, imu_block = line.split(" | ", 1) # Split at the first " | " (time, IMU)
                         time_data = time_block[len("TIME:"):].strip() # Remove the "TIME:" prefix
-        
+                        if debug: print(f"Time data: {time_data}")  # Debug print
+
                         if imu_block.startswith("IMU:"):
                             imu_data = imu_block[len("IMU:"):].strip() # Remove the "IMU:" prefix
+                            oaccel_block, ogyro_block = imu_data.split(" | ", 1) # Split at the first " | " (Oaccel, Ogyro)
+                            oaccel_data = oaccel_block.replace("Oaccel: ", "").split(", ")
+                            ogyro_data = ogyro_block.replace("Ogyro: ", "").split(", ")
+                            if debug: print(f"IMU data: {imu_data}")  # Debug print
+                            if debug: print(f"Oaccel data: {oaccel_data}")  # Debug print
+                            if debug: print(f"Ogyro data: {ogyro_data}")  # Debug print
 
-                            oaccel_data = imu_data[0].replace("Oaccel: ", "").split(", ")
-                            ogyro_data = imu_data[1].replace("Ogyro: ", "").split(", ")
-                        
                             if len(oaccel_data) == 2 and len(ogyro_data) == 1:
                                 sensor_values = {
-                                    "timestamp": float(time_data),
+                                    "Timestamp": float(time_data),
                                     "Oaccel_x": float(oaccel_data[0]),
                                     "Oaccel_y": float(oaccel_data[1]),
                                     "Ogyro_z": float(ogyro_data[0]),
@@ -134,7 +142,7 @@ def receive_data():
                                 text_box.see(tk.END)  # Scroll to the bottom
 
                                 csv_writer.writerow([
-                                    sensor_values["timestamp"],
+                                    sensor_values["Timestamp"],
                                     sensor_values["Oaccel_x"], sensor_values["Oaccel_y"], sensor_values["Ogyro_z"],
                                 ])
                             else:

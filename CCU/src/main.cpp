@@ -7,13 +7,14 @@
 #include "i2c_master.h"
 #include "databuffer.h"
 
-#define SEND_DATA_SERIAL 1
+#define SEND_DATA_SERIAL false
 
 // I2C Config
 #define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
 
 // WiFi Config
-WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+//WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiClient client;
 // data buffer
 DataBuffer dataBuffer;
@@ -24,7 +25,7 @@ DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
 
 volatile bool controlFlag = false; // Flag to indicate when to run the control loop
-const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
+const double SAMPLE_FREQ = 10.0; //100Hz, 10ms sample time
 
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
@@ -149,7 +150,7 @@ void sendSensorData(WiFiClient &client) {
         client.print("IMU: ");
         client.print("Oaccel: ");
         client.print(data.acc_x); client.print(", ");
-        client.print(data.acc_y); client.print(", ");
+        client.print(data.acc_y); client.print(" | ");
         client.print("Ogyro: ");
         client.print(data.gyro_z); //client.print(" | ");
         client.println();
@@ -157,11 +158,14 @@ void sendSensorData(WiFiClient &client) {
 
     if(SEND_DATA_SERIAL){
         Serial.print("Sendt sensor data: ");
+        Serial.print("TIME: ");
+        Serial.print(data.timestamp); Serial.print(" | ");
+        Serial.print("IMU: ");
         Serial.print("Oaccel: ");
-        Serial.print(data.acc_x); client.print(", ");
-        Serial.print(data.acc_y); client.print(", ");
+        Serial.print(data.acc_x); Serial.print(", ");
+        Serial.print(data.acc_y); Serial.print(" | ");
         Serial.print("Ogyro: ");
-        Serial.print(data.gyro_z); client.print(" | ");
+        Serial.print(data.gyro_z); //Serial.print(" | ");
         Serial.println();
     }
 }
