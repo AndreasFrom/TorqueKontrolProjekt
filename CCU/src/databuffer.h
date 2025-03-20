@@ -7,9 +7,12 @@
 
 // Define data structure for logging
 struct dataBlock {
-    // Timestamp
+    // Timestamp:
+    unsigned long timestamp;
+    //  Setpoints:
     //uint8_t setpoint;
     //uint8_t setpoint_radius;
+    // IMU data:
     float acc_x;
     float acc_y;
     float gyro_z;

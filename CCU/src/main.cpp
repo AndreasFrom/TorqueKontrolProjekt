@@ -20,25 +20,24 @@ DataBuffer dataBuffer;
 // I2C
 I2CMaster i2cMaster;
 // IMU
-DFRobot_BMX160 bmx160(&Wire);
-
-//DFRobot_BMX160 bmx160;
+DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
 
 volatile bool controlFlag = false; // Flag to indicate when to run the control loop
-const double SAMPLE_FREQ = 100.0; // 10ms sample time
+const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
 void processClientMessage(String message);
 
 void timerISR() {
-    controlFlag = true; // Set the flag in the ISR
+    //controlFlag = true; // Set the flag in the ISR
     //Perform measurements and add to queue
+    unsigned long timestamp = millis();
     sBmx160SensorData_t Ogyro = {0, 0, 0};
     sBmx160SensorData_t Oaccel = {0, 0, 0};
     bmx160.getGyroACC(&Ogyro, &Oaccel);
-    dataBuffer.addData({Oaccel.x, Oaccel.y, Ogyro.z});
+    dataBuffer.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
 }
 
 void setup() {
