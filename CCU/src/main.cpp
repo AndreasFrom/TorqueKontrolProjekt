@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <queue>
+#include "timer_interrupt.h"
 #include "wifihandler.h"
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
@@ -127,31 +128,23 @@ void sendSensorData(WiFiClient &client) {
     dataBlock data;
 
     // Check if data is avaliable in queue
-    if()
-    client.print("SENSOR:");
-    client.print("Oaccel: ");
-    client.print(Oaccel.x); client.print(", ");
-    client.print(Oaccel.y); client.print(", ");
-    client.print("Ogyro: ");
-    client.print(Ogyro.z); client.print(" | ");
-    client.println();
+    if(dataBuffer.getData(data)){ 
+        client.print("SENSOR:");
+        client.print("Oaccel: ");
+        client.print(data.acc_x); client.print(", ");
+        client.print(data.acc_y); client.print(", ");
+        client.print("Ogyro: ");
+        client.print(data.gyro_z); client.print(" | ");
+        client.println();
+    }
 
     if(SEND_DATA_SERIAL){
         Serial.print("Sendt sensor data: ");
-        Serial.print("Omagn: ");
-        Serial.print(Omagn.x); Serial.print(", ");
-        Serial.print(Omagn.y); Serial.print(", ");
-        Serial.print(Omagn.z); Serial.print(" | ");
-
-        Serial.print("Ogyro: ");
-        Serial.print(Ogyro.x); Serial.print(", ");
-        Serial.print(Ogyro.y); Serial.print(", ");
-        Serial.print(Ogyro.z); Serial.print(" | ");
-
         Serial.print("Oaccel: ");
-        Serial.print(Oaccel.x); Serial.print(", ");
-        Serial.print(Oaccel.y); Serial.print(", ");
-        Serial.print(Oaccel.z);
+        Serial.print(data.acc_x); client.print(", ");
+        Serial.print(data.acc_y); client.print(", ");
+        Serial.print("Ogyro: ");
+        Serial.print(data.gyro_z); client.print(" | ");
         Serial.println();
     }
 }
