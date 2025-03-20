@@ -142,12 +142,14 @@ void sendSensorData(WiFiClient &client) {
 
     // Check if data is avaliable in queue
     if(dataBuffer.getData(data)){ 
-        client.print("SENSOR:");
+        client.print("TIME: ");
+        client.print(data.timestamp); client.print(" | ");
+        client.print("IMU: ");
         client.print("Oaccel: ");
         client.print(data.acc_x); client.print(", ");
         client.print(data.acc_y); client.print(", ");
         client.print("Ogyro: ");
-        client.print(data.gyro_z); client.print(" | ");
+        client.print(data.gyro_z); //client.print(" | ");
         client.println();
     }
 

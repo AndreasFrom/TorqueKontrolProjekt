@@ -110,47 +110,36 @@ def receive_data():
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)  # Split at the first newline
                     line = line.strip()  # Remove leading/trailing whitespace
+                    
+                    if line.startswith("TIME:"):
+                        time_block, imu_block = line.split(" | ", 1) # Split at the first " | " (time, IMU)
+                        time_data = time_block[len("TIME:"):].strip() # Remove the "TIME:" prefix
+        
+                        if imu_block.startswith("IMU:"):
+                            imu_data = imu_block[len("IMU:"):].strip() # Remove the "IMU:" prefix
 
-                    if line.startswith("SENSOR:"):
-                        # Remove the "SENSOR:" prefix
-                        sensor_data = line[len("SENSOR:"):].strip()
-                        parts = sensor_data.split(" | ")
-                        if len(parts) == 3:
-                            omagn_data = parts[0].replace("Omagn: ", "").split(", ")
-                            ogyro_data = parts[1].replace("Ogyro: ", "").split(", ")
-                            oaccel_data = parts[2].replace("Oaccel: ", "").split(", ")
-
-                            if len(omagn_data) == 3 and len(ogyro_data) == 3 and len(oaccel_data) == 3:
-                                now = datetime.now()
-                                timestamp = now.strftime("%Y-%m-%d %H:%M:%S") + f".{now.microsecond // 1000:03d}"
-
+                            oaccel_data = imu_data[0].replace("Oaccel: ", "").split(", ")
+                            ogyro_data = imu_data[1].replace("Ogyro: ", "").split(", ")
+                        
+                            if len(oaccel_data) == 2 and len(ogyro_data) == 1:
                                 sensor_values = {
-                                    "timestamp": timestamp,
-                                    "Omagn_x": float(omagn_data[0]),
-                                    "Omagn_y": float(omagn_data[1]),
-                                    "Omagn_z": float(omagn_data[2]),
-                                    "Ogyro_x": float(ogyro_data[0]),
-                                    "Ogyro_y": float(ogyro_data[1]),
-                                    "Ogyro_z": float(ogyro_data[2]),
+                                    "timestamp": float(time_data),
                                     "Oaccel_x": float(oaccel_data[0]),
                                     "Oaccel_y": float(oaccel_data[1]),
-                                    "Oaccel_z": float(oaccel_data[2]),
+                                    "Ogyro_z": float(ogyro_data[0]),
                                 }
 
                                 # Display the data in the text box
-                                text_box.insert(tk.END, f"{timestamp} Logged data\n")
+                                text_box.insert(tk.END, f"{time_data} Logged data\n")
                                 text_box.see(tk.END)  # Scroll to the bottom
 
                                 csv_writer.writerow([
                                     sensor_values["timestamp"],
-                                    sensor_values["Omagn_x"], sensor_values["Omagn_y"], sensor_values["Omagn_z"],
-                                    sensor_values["Ogyro_x"], sensor_values["Ogyro_y"], sensor_values["Ogyro_z"],
-                                    sensor_values["Oaccel_x"], sensor_values["Oaccel_y"], sensor_values["Oaccel_z"],
+                                    sensor_values["Oaccel_x"], sensor_values["Oaccel_y"], sensor_values["Ogyro_z"],
                                 ])
                             else:
                                 print("Error: Invalid sensor data format")
-                        else:
-                            print("Error: Incomplete sensor data")
+                        
         except socket.timeout:
             continue
         except Exception as e:
