@@ -1,7 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <queue>
-#include "timer_interrupt.h"
+
 #include "wifihandler.h"
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
@@ -23,16 +23,26 @@ I2CMaster i2cMaster;
 //DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
 
+volatile bool controlFlag = false; // Flag to indicate when to run the control loop
+const double SAMPLE_TIME = 10000; // 10ms sample time
 
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
 void processClientMessage(String message);
+
+void timerISR() {
+    controlFlag = true; // Set the flag in the ISR
+}
 
 void setup() {
     Serial.begin(115200);
     i2cMaster.begin();
     wifiHandler.connectToWiFi();
     wifiHandler.startTCPServer();
+
+    // Initialize Timer1 to trigger every 10ms
+    //Timer1.initialize(SAMPLE_TIME);
+    //Timer1.attachInterrupt(timerISR); // 10ms in microseconds
 
     /*if (!bmx160.begin()) {
         Serial.println("Sensor init fejlede!");
