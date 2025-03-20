@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 #include <queue>
+#include <SD.h>
 #include "AGTimerR4.h" //https://github.com/washiyamagiken/AGTimer_R4_Library/tree/main
 #include "wifihandler.h" 
 #include <DFRobot_BMX160.h>
