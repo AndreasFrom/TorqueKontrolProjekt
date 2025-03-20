@@ -25,7 +25,7 @@ DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
 
 volatile bool controlFlag = false; // Flag to indicate when to run the control loop
-const double SAMPLE_FREQ = 10.0; //100Hz, 10ms sample time
+const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
@@ -145,15 +145,18 @@ void sendSensorData(WiFiClient &client) {
 
     // Check if data is avaliable in queue
     if(dataBuffer.getData(data)){ 
-        client.print("TIME: ");
-        client.print(data.timestamp); client.print(" | ");
-        client.print("IMU: ");
-        client.print("Oaccel: ");
-        client.print(data.acc_x); client.print(", ");
-        client.print(data.acc_y); client.print(" | ");
-        client.print("Ogyro: ");
-        client.print(data.gyro_z); //client.print(" | ");
-        client.println();
+        String message = "TIME: ";
+        message += data.timestamp;
+        message += " | IMU: Oaccel: ";
+        message += data.acc_x;
+        message += ", ";
+        message += data.acc_y;
+        message += " | Ogyro: ";
+        message += data.gyro_z;
+        message += "\n";
+
+        // Send the message with a single client.print call
+        client.print(message);
     }
 
     if(SEND_DATA_SERIAL){
