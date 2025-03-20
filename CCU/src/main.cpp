@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <Wire.h>
+#include <queue>
 #include "wifihandler.h"
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
