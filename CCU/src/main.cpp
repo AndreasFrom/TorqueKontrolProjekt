@@ -6,28 +6,35 @@
 #include "wifihandler.h" 
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
-#include "databuffer.h"
+#include "sdLogger.h"
 
 #define SEND_DATA_SERIAL false
-
-// I2C Config
-#define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
 
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiClient client;
-// data buffer
-DataBuffer dataBuffer;
+
+// SD card
+#define CS 10
+#define SDO 11
+#define SDI 12
+#define CLK 13
+SDLogger sdLogger(CS);
+
 // I2C
+#define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
 I2CMaster i2cMaster;
+
 // IMU
 DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
+bool dumpdata = false; // Falg to control when to transfer data
 
 volatile bool controlFlag = false; // Flag to indicate when to run the control loop
 const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
+// Prototypes
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
 void processClientMessage(String message);
@@ -40,7 +47,7 @@ void timerISR() {
         sBmx160SensorData_t Ogyro = {0, 0, 0};
         sBmx160SensorData_t Oaccel = {0, 0, 0};
         bmx160.getGyroACC(&Ogyro, &Oaccel);
-        dataBuffer.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
+        sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
     }
 }
 
@@ -49,6 +56,7 @@ void setup() {
     i2cMaster.begin();
     wifiHandler.connectToWiFi();
     wifiHandler.startTCPServer();
+    sdLogger.init("data.csv");
 
     // Initialize Timer1 to trigger every 10ms
     AGTimer.init(SAMPLE_FREQ, timerISR);
@@ -74,7 +82,7 @@ void loop() {
 }
 
 void handleClientCommunication(WiFiClient &client) {
-    if (logging) {
+    if(dumpdata){
         sendSensorData(client);
     }
 
@@ -94,6 +102,7 @@ void processClientMessage(String message) {
         Serial.println("Logging started!");
     } else if (message == "STOP") {
         client.println("ACK:STOP");
+        dumpdata = true;
         logging = false;
         Serial.println("Logging stopped!");
     } else if (message.startsWith("PID:")) {
@@ -145,7 +154,7 @@ void sendSensorData(WiFiClient &client) {
     dataBlock data;
 
     // Check if data is avaliable in queue
-    if(dataBuffer.getData(data)){ 
+    if(sdLogger.getData(data)){ 
         String message = "TIME: ";
         message += data.timestamp;
         message += " | IMU: Oaccel: ";
@@ -158,6 +167,8 @@ void sendSensorData(WiFiClient &client) {
 
         // Send the message with a single client.print call
         client.print(message);
+    }else{
+        dumpdata = false;
     }
 
     if(SEND_DATA_SERIAL){
