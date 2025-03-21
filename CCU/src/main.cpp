@@ -46,8 +46,11 @@ void timerISR() {
         unsigned long timestamp = millis();
         sBmx160SensorData_t Ogyro = {0, 0, 0};
         sBmx160SensorData_t Oaccel = {0, 0, 0};
-        bmx160.getGyroACC(&Ogyro, &Oaccel);
+        sBmx160SensorData_t Omagn = {0, 0, 0};
+        //bmx160.getGyroACC(&Ogyro, &Oaccel);
+        bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
         sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
+        //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
     }
 }
 
@@ -106,7 +109,7 @@ void processClientMessage(String message) {
         Serial.println("Logging started!");
     } else if (message == "STOP") {
         client.println("ACK:STOP");
-        dumpdata = true;
+        //dumpdata = true;
         logging = false;
         sdLogger.close();
         Serial.println("Logging stopped!");

@@ -33,6 +33,7 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.acc_y) + ", " + 
             String(data.gyro_z);
         _dataFile.println(line);
+        Serial.println(line);
     }else{
         Serial.println("Error opening file SD (Add)");
     }
