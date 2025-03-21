@@ -35,6 +35,16 @@ bool dumpdata = false; // Falg to control when to transfer data
 volatile bool controlFlag = false; // Flag to indicate when to run the control loop
 const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
+
+// Temp data
+float kp = 1.0;
+float ki = 0.2;
+float kd = 0.5;
+uint8_t mode = 2;                      
+uint8_t setpoint = 50;                  
+uint8_t setpoint_radius = 2; 
+
+
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
@@ -44,11 +54,7 @@ void timerISR() {
     //controlFlag = true; // Set the flag in the ISR
     if(logging){
         //Perform measurements and add to queue
-        unsigned long timestamp = millis();
-
-        uint8_t mode = 0;                      
-        uint8_t setpoint = 0;                  
-        uint8_t setpoint_radius = 0;     
+        unsigned long timestamp = millis();    
 
         sBmx160SensorData_t Ogyro = {0, 0, 0};  
         sBmx160SensorData_t Oaccel = {0, 0, 0}; 
@@ -56,10 +62,6 @@ void timerISR() {
         //bmx160.getGyroACC(&Ogyro, &Oaccel);
         bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
-
-        float kp = 0;
-        float ki = 0;
-        float kd = 0;
 
         MUData MU0;
         MUData MU1;
@@ -98,6 +100,15 @@ void setup() {
         while (1);
     }
     Serial.println("Setup complete!");
+
+    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);
 }
 
 void loop() {
