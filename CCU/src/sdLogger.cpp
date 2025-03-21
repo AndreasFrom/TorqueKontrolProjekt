@@ -51,7 +51,7 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.MU3.value_recv) + ", " +
             String(data.MU3.current_recv);
         _dataFile.println(line);
-        Serial.println(line);
+        //Serial.println(line);
     }else{
         Serial.println("Error opening file SD (Add)");
     }
