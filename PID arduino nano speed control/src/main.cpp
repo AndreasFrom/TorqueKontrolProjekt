@@ -82,9 +82,6 @@ void controlLoop() {
 
     unsigned long timestamp = millis(); 
 
-    i2cSlave.setMessuredData(currentRPM, currentCurrent);
-    i2cSlave.setTimestamp(timestamp);
-
     Serial.print(timestamp); 
     Serial.print(",");
     Serial.print(motorSensor.getTimeBetweenSensors());
