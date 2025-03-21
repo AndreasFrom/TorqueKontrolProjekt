@@ -1,6 +1,8 @@
 #ifndef I2CMASTER_H
 #define I2CMASTER_H
 
+#define SEND_DATA_SERIAL false
+
 #include <Wire.h>
 #include <Arduino.h>
 
@@ -8,13 +10,20 @@
 #define CMD_PARAM 0x10
 #define CMD_SET 0x20
 
+struct MUData
+{
+    uint8_t setpoint_recv;
+    float value_recv;
+    float current_recv;
+};
+
 class I2CMaster {
 public:
     I2CMaster();
     void begin(); 
     bool sendParam(uint8_t slave_adress, uint8_t mode, uint8_t kp, uint8_t ki, uint8_t kd);
     bool sendSetpoint(uint8_t slave_adress, uint8_t setpoint);
-    bool requestData(uint8_t slave_adress);
+    bool requestData(uint8_t slave_adress, MUData& data);
 
 private:
     uint8_t _slaveAddress;

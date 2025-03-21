@@ -4,7 +4,6 @@ I2CMaster::I2CMaster() {}
 
 void I2CMaster::begin() {
     Wire.begin();
-    Serial.begin(115200);
     Serial.println("I2C Master Ready!");
 }
 
@@ -17,7 +16,9 @@ bool I2CMaster::sendParam(uint8_t slave_adress, uint8_t mode, uint8_t kp, uint8_
     Wire.write(kd);
     Wire.endTransmission();
 
-    Serial.println("Parameters sent!");
+    if(SEND_DATA_SERIAL){
+        Serial.println("Parameters sent!");
+    }
     return true;
 }
 
@@ -26,24 +27,28 @@ bool I2CMaster::sendSetpoint(uint8_t slave_adress, uint8_t setpoint) {
     Wire.write(CMD_SET);
     Wire.write(setpoint);
     
-    Serial.println("Setpoint sent!");
+    if(SEND_DATA_SERIAL){
+        Serial.println("Setpoint sent!");
+    }
     return true;
 }
 
-bool I2CMaster::requestData(uint8_t slave_adress) {
+bool I2CMaster::requestData(uint8_t slave_adress, MUData& data) {
     Wire.requestFrom(slave_adress, 3); // Request 3 bytes
 
     if (Wire.available() >= 3) {
-        uint8_t setpoint_recv = Wire.read();
-        float measuredval_recv = Wire.read();
-        float Mescurrent_recv = Wire.read();
+        data.setpoint_recv = Wire.read();
+        data.value_recv = Wire.read();
+        data.current_recv = Wire.read();
 
-        Serial.print("Received back: Setpoint = ");
-        Serial.print(setpoint_recv);
-        Serial.print(", Measured value = ");
-        Serial.print(measuredval_recv);
-        Serial.print(", Current = ");
-        Serial.println(Mescurrent_recv);
+        if(SEND_DATA_SERIAL){
+            Serial.print("Received back: Setpoint = ");
+            Serial.print(data.setpoint_recv);
+            Serial.print(", Measured value = ");
+            Serial.print(data.value_recv);
+            Serial.print(", Current = ");
+            Serial.println(data.current_recv);
+        }
     } else {
         Serial.println("Error: Did not receive expected data from slave!");
     }

@@ -5,8 +5,9 @@
 #include "AGTimerR4.h" //https://github.com/washiyamagiken/AGTimer_R4_Library/tree/main
 #include "wifihandler.h" 
 #include <DFRobot_BMX160.h>
-#include "i2c_master.h"
 #include "sdLogger.h"
+#include "i2c_master.h"
+
 
 #define SEND_DATA_SERIAL false
 
@@ -44,20 +45,44 @@ void timerISR() {
     if(logging){
         //Perform measurements and add to queue
         unsigned long timestamp = millis();
-        sBmx160SensorData_t Ogyro = {0, 0, 0};
-        sBmx160SensorData_t Oaccel = {0, 0, 0};
-        sBmx160SensorData_t Omagn = {0, 0, 0};
+
+        uint8_t mode = 0;                      
+        uint8_t setpoint = 0;                  
+        uint8_t setpoint_radius = 0;     
+
+        sBmx160SensorData_t Ogyro = {0, 0, 0};  
+        sBmx160SensorData_t Oaccel = {0, 0, 0}; 
+        sBmx160SensorData_t Omagn = {0, 0, 0};  
         //bmx160.getGyroACC(&Ogyro, &Oaccel);
         bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
-        sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
+
+        float kp = 0;
+        float ki = 0;
+        float kd = 0;
+
+        MUData MU0;
+        MUData MU1;
+        MUData MU2;
+        MUData MU3;
+        i2cMaster.requestData(SLAVE_ADDRESS_START, MU0);
+        i2cMaster.requestData(SLAVE_ADDRESS_START + 1, MU1);
+        i2cMaster.requestData(SLAVE_ADDRESS_START + 2, MU2);
+        i2cMaster.requestData(SLAVE_ADDRESS_START + 3, MU3);
+
+        sdLogger.addData({
+            timestamp, 
+            mode, setpoint, setpoint_radius, 
+            Oaccel.x, Oaccel.y, Ogyro.z,
+            kp, ki, kd,
+            MU0, MU1, MU2, MU3
+        });
     }
 }
 
 void setup() {
     Serial.begin(115200);
-    // Set the CS pin to output
-    pinMode(chipselect, OUTPUT);
+    pinMode(chipselect, OUTPUT); // Set the CS pin to output
     
     i2cMaster.begin();
     wifiHandler.connectToWiFi();
@@ -107,12 +132,14 @@ void processClientMessage(String message) {
         client.println("ACK:START");
         logging = true;
         Serial.println("Logging started!");
+
     } else if (message == "STOP") {
         client.println("ACK:STOP");
         //dumpdata = true;
         logging = false;
         sdLogger.close();
         Serial.println("Logging stopped!");
+        
     } else if (message.startsWith("PID:")) {
         client.println("ACK:PID");
         message.remove(0, 4);

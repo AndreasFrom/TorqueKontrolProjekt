@@ -29,9 +29,27 @@ void SDLogger::addData(const dataBlock& data) {
     if(_dataFile){
         String line = 
             String(data.timestamp) + ", " +
+            String(data.mode) + ", " +
+            String(data.setpoint) + ", " +
+            String(data.setpoint_radius) + ", " +
             String(data.acc_x) + ", " +
             String(data.acc_y) + ", " + 
-            String(data.gyro_z);
+            String(data.gyro_z) + ", " +
+            String(data.Kp) + ", " +
+            String(data.Ki) + ", " +
+            String(data.Kd) + ", " +
+            String(data.MU0.setpoint_recv) + ", " +
+            String(data.MU0.value_recv) + ", " +
+            String(data.MU0.current_recv) + ", " +
+            String(data.MU1.setpoint_recv) + ", " +
+            String(data.MU1.value_recv) + ", " +
+            String(data.MU1.current_recv) + ", " +
+            String(data.MU2.setpoint_recv) + ", " +
+            String(data.MU2.value_recv) + ", " +
+            String(data.MU2.current_recv) + ", " +
+            String(data.MU3.setpoint_recv) + ", " +
+            String(data.MU3.value_recv) + ", " +
+            String(data.MU3.current_recv);
         _dataFile.println(line);
         Serial.println(line);
     }else{
