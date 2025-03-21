@@ -41,8 +41,8 @@ float kp = 1.0;
 float ki = 0.2;
 float kd = 0.5;
 uint8_t mode = 2;                      
-uint8_t setpoint = 50;                  
-uint8_t setpoint_radius = 2; 
+float setpoint = 10.0;                  
+float setpoint_radius = 2.0; 
 
 
 // Prototypes
@@ -101,13 +101,13 @@ void setup() {
     }
     Serial.println("Setup complete!");
 
-    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint);
-    i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
-    i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
-    i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp*10, ki*10, kd*10);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);
 }
 

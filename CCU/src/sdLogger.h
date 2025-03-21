@@ -10,8 +10,8 @@ struct dataBlock {
     unsigned long timestamp;    // Timestamp
 
     uint8_t mode;               // Control mode
-    uint8_t setpoint;           // Setpoints:
-    uint8_t setpoint_radius;    // Setpoint radius
+    float setpoint;           // Setpoints:
+    float setpoint_radius;    // Setpoint radius
 
     float acc_x;                // IMU Acceleration x
     float acc_y;                // IMU Acceleration y
