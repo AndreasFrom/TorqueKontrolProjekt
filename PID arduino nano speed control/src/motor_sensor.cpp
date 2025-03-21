@@ -66,7 +66,7 @@ double MotorSensor::getMotorCurrent() {
     //Sensor resolution: 1.1V/A
     int sensorVal = analogRead(currentSensePin_);
     current_ = (((sensorVal * 5.0) / 1023.0) / 1.1);
-    Serial.print("Current: "); 
-    Serial.println(current_);
+    //Serial.print("Current: "); 
+    //Serial.println(current_);
     return current_;
 }

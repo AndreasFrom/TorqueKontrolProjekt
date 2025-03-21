@@ -80,7 +80,7 @@ void controlLoop() {
     analogWrite(PWM_PIN, pwmValue);
 
 
-    unsigned long timestamp = millis(); 
+/*     unsigned long timestamp = millis(); 
 
     Serial.print(timestamp); 
     Serial.print(",");
@@ -92,7 +92,7 @@ void controlLoop() {
     Serial.print(",");
     Serial.println(pwmValue);
     Serial.print(",");
-    Serial.println(motorCurrent);
+    Serial.println(motorCurrent); */
 }
 
 void timerISR() {
