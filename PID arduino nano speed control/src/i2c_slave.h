@@ -37,9 +37,7 @@ private:
     double _kp;
     double _ki;
     double _kd;
-    double _output;
-    double _current;
-    unsigned long _timestamp;
+    
 
     static void receiveEvent(int bytes);
     static void requestEvent();
