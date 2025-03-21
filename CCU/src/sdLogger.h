@@ -29,6 +29,7 @@ private:
     File _dataFile;
     const char* _filename;
     bool _fileOpen = false;
+    String _dataHeader = ("timestamp, acc_x, acc_y, gyro_z");
 };
 
 #endif

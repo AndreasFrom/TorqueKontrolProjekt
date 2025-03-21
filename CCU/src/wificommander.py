@@ -12,6 +12,7 @@ TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
 logging = False
+stop_command_sent = False
 sock = None
 csv_file = None
 csv_writer = None
@@ -63,18 +64,19 @@ def send_command(command):
 
 def start_logging():
     """Start logging by sending the START command."""
-    global logging
+    global logging, stop_command_sent
     logging = True
+    stop_command_sent = False
     create_csv_file()
     send_command("START")
     threading.Thread(target=receive_data, daemon=True).start()
 
 def stop_logging():
     """Stop logging by sending the STOP command."""
-    global logging
-    logging = False
+    global logging, stop_command_sent
+    stop_command_sent = True
     send_command("STOP")
-    close_csv_file()
+    #close_csv_file()
 
 # Function to send PID parameters and setpoint
 def send_pid_setpoint():
@@ -103,7 +105,7 @@ def receive_data():
     """Receive sensor data from the Arduino and log it to the CSV file."""
     global sock, logging, csv_writer
     buffer = ""  # Buffer to store incomplete data
-    while logging:
+    while logging or stop_command_sent:
         try:
             data = sock.recv(1024).decode()
             if data:
@@ -153,6 +155,9 @@ def receive_data():
         except Exception as e:
             print(f"Error receiving data: {e}")
             break
+
+    logging = False
+    close_csv_file()
 
 # Create the main UI window
 root = tk.Tk()

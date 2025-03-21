@@ -12,7 +12,6 @@ void SDLogger::init(const int spi_cs, const char *filename) {
     _filename = filename;
     _dataFile = SD.open(_filename, FILE_WRITE);
     if(_dataFile){
-        _dataFile.println("timestamp, acc_x, acc_y, gyro_z");
         _dataFile.close();
         Serial.println("SD init complete");
     }else{
@@ -24,6 +23,7 @@ void SDLogger::addData(const dataBlock& data) {
     if(!_fileOpen){ // Check if file is already open
         _dataFile = SD.open(_filename, FILE_WRITE);
         _fileOpen = true;
+        _dataFile.println(_dataHeader);
     }
 
     if(_dataFile){
