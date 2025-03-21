@@ -129,7 +129,7 @@ void processClientMessage(String message) {
         Serial.print(" Kd: "); Serial.println(kd);
 
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendData(SLAVE_ADDRESS_START + i, setpoint, kp, ki, kd);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, setpoint, kp, ki, kd);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
@@ -140,7 +140,7 @@ void processClientMessage(String message) {
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendData(SLAVE_ADDRESS_START + i, setpoint, -1, -1, -1);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, setpoint, -1, -1, -1);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
