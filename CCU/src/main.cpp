@@ -1,34 +1,78 @@
 #include <Arduino.h>
 #include <Wire.h>
-#include "wifihandler.h"
+#include <queue>
+#include <SD.h>
+#include "AGTimerR4.h" //https://github.com/washiyamagiken/AGTimer_R4_Library/tree/main
+#include "wifihandler.h" 
 #include <DFRobot_BMX160.h>
 #include "i2c_master.h"
+#include "sdLogger.h"
 
-// I2C Config
-#define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
+#define SEND_DATA_SERIAL false
 
 // WiFi Config
-WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+//WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiClient client;
+
+// SD card
+const int chipselect = 10;
+//#define SDO 11
+//#define SDI 12
+//#define CLK 13
+SDLogger sdLogger;
+
+// I2C
+#define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
 I2CMaster i2cMaster;
 
-//DFRobot_BMX160 bmx160;
+// IMU
+DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
+bool dumpdata = false; // Falg to control when to transfer data
 
+volatile bool controlFlag = false; // Flag to indicate when to run the control loop
+const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
+
+// Prototypes
 void handleClientCommunication(WiFiClient &client);
 void sendSensorData(WiFiClient &client);
 void processClientMessage(String message);
 
+void timerISR() {
+    //controlFlag = true; // Set the flag in the ISR
+    if(logging){
+        //Perform measurements and add to queue
+        unsigned long timestamp = millis();
+        sBmx160SensorData_t Ogyro = {0, 0, 0};
+        sBmx160SensorData_t Oaccel = {0, 0, 0};
+        sBmx160SensorData_t Omagn = {0, 0, 0};
+        //bmx160.getGyroACC(&Ogyro, &Oaccel);
+        bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
+        sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
+        //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
+    }
+}
+
 void setup() {
     Serial.begin(115200);
+    // Set the CS pin to output
+    pinMode(chipselect, OUTPUT);
+    
     i2cMaster.begin();
     wifiHandler.connectToWiFi();
     wifiHandler.startTCPServer();
+    sdLogger.init(chipselect,"data.csv");
 
-    /*if (!bmx160.begin()) {
+    // Initialize Timer1 to trigger every 10ms
+    AGTimer.init(SAMPLE_FREQ, timerISR);
+    AGTimer.start();
+
+    if (!bmx160.begin()) {
         Serial.println("Sensor init fejlede!");
         while (1);
-    }*/
+    }
+    Serial.println("Setup complete!");
 }
 
 void loop() {
@@ -45,7 +89,7 @@ void loop() {
 }
 
 void handleClientCommunication(WiFiClient &client) {
-    if (logging) {
+    if(dumpdata){
         sendSensorData(client);
     }
 
@@ -65,7 +109,9 @@ void processClientMessage(String message) {
         Serial.println("Logging started!");
     } else if (message == "STOP") {
         client.println("ACK:STOP");
+        //dumpdata = true;
         logging = false;
+        sdLogger.close();
         Serial.println("Logging stopped!");
     } else if (message.startsWith("PID:")) {
         client.println("ACK:PID");
@@ -91,7 +137,7 @@ void processClientMessage(String message) {
         Serial.print(" Kd: "); Serial.println(kd);
 
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendData(SLAVE_ADDRESS_START + i, setpoint, kp, ki, kd);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, setpoint, kp, ki, kd);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
@@ -102,7 +148,7 @@ void processClientMessage(String message) {
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendData(SLAVE_ADDRESS_START + i, setpoint, -1, -1, -1);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, setpoint, -1, -1, -1);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
@@ -111,42 +157,38 @@ void processClientMessage(String message) {
 }
 
 void sendSensorData(WiFiClient &client) {
-    sBmx160SensorData_t Omagn = {0, 0, 0};
-    sBmx160SensorData_t Ogyro = {0, 0, 0};
-    sBmx160SensorData_t Oaccel = {0, 0, 0};
-    //bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
 
-    client.print("SENSOR:");
-    client.print("Omagn: ");
-    client.print(Omagn.x); client.print(", ");
-    client.print(Omagn.y); client.print(", ");
-    client.print(Omagn.z); client.print(" | ");
+    // Create struct to hold sensor data
+    dataBlock data;
 
-    client.print("Ogyro: ");
-    client.print(Ogyro.x); client.print(", ");
-    client.print(Ogyro.y); client.print(", ");
-    client.print(Ogyro.z); client.print(" | ");
+    // Check if data is avaliable in queue
+    if(sdLogger.getData(data)){ 
+        String message = "TIME: ";
+        message += data.timestamp;
+        message += " | IMU: Oaccel: ";
+        message += data.acc_x;
+        message += ", ";
+        message += data.acc_y;
+        message += " | Ogyro: ";
+        message += data.gyro_z;
+        message += "\n";
 
-    client.print("Oaccel: ");
-    client.print(Oaccel.x); client.print(", ");
-    client.print(Oaccel.y); client.print(", ");
-    client.print(Oaccel.z);
-    client.println();
+        // Send the message with a single client.print call
+        client.print(message);
+    }else{
+        dumpdata = false;
+    }
 
-    Serial.print("Sendt sensor data: ");
-    Serial.print("Omagn: ");
-    Serial.print(Omagn.x); Serial.print(", ");
-    Serial.print(Omagn.y); Serial.print(", ");
-    Serial.print(Omagn.z); Serial.print(" | ");
-
-    Serial.print("Ogyro: ");
-    Serial.print(Ogyro.x); Serial.print(", ");
-    Serial.print(Ogyro.y); Serial.print(", ");
-    Serial.print(Ogyro.z); Serial.print(" | ");
-
-    Serial.print("Oaccel: ");
-    Serial.print(Oaccel.x); Serial.print(", ");
-    Serial.print(Oaccel.y); Serial.print(", ");
-    Serial.print(Oaccel.z);
-    Serial.println();
+    if(SEND_DATA_SERIAL){
+        Serial.print("Sendt sensor data: ");
+        Serial.print("TIME: ");
+        Serial.print(data.timestamp); Serial.print(" | ");
+        Serial.print("IMU: ");
+        Serial.print("Oaccel: ");
+        Serial.print(data.acc_x); Serial.print(", ");
+        Serial.print(data.acc_y); Serial.print(" | ");
+        Serial.print("Ogyro: ");
+        Serial.print(data.gyro_z); //Serial.print(" | ");
+        Serial.println();
+    }
 }

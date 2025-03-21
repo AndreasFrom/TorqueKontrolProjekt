@@ -40,11 +40,6 @@ unsigned long MotorSensor::getTimeBetweenSensors() {
     return timeBetweenSensors;
 }
 
-double MotorSensor::getCurrentReading()
-{
-    return analogRead(_pinCurrent); 
-}
-
 double MotorSensor::getFilteredRPM(double newRPM) {
     rpmReadings[rpmIndex] = newRPM;
     rpmIndex = (rpmIndex + 1) % filterSizeRPM_;

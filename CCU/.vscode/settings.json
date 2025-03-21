@@ -1,9 +1,9 @@
 {
-  "C_Cpp_Runner.cCompilerPath": "C:/Users/minif/.platformio/packages/toolchain-gccarmnoneeabi/bin/arm-none-eabi-gcc.exe",
-  "C_Cpp_Runner.cppCompilerPath": "C:/Users/minif/.platformio/packages/toolchain-g++armnoneeabi/bin/arm-none-eabi-gcc.exe",
-  "C_Cpp_Runner.debuggerPath": "C:/Users/minif/.platformio/packages/toolchain-gdbarmnoneeabi/bin/arm-none-eabi-gcc.exe",
-  "C_Cpp_Runner.cStandard": "gnu11",
-  "C_Cpp_Runner.cppStandard": "gnu++17",
+  "C_Cpp_Runner.cCompilerPath": "gcc",
+  "C_Cpp_Runner.cppCompilerPath": "g++",
+  "C_Cpp_Runner.debuggerPath": "gdb",
+  "C_Cpp_Runner.cStandard": "",
+  "C_Cpp_Runner.cppStandard": "",
   "C_Cpp_Runner.msvcBatchPath": "C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Auxiliary/Build/vcvarsall.bat",
   "C_Cpp_Runner.useMsvc": false,
   "C_Cpp_Runner.warnings": [
@@ -37,38 +37,7 @@
   "C_Cpp_Runner.warningsAsError": false,
   "C_Cpp_Runner.compilerArgs": [],
   "C_Cpp_Runner.linkerArgs": [],
-  "C_Cpp_Runner.includePaths": [
-    "C:/Users/minif/Documents/7.Semester/TorqueKontrolProjekt/R4Wifi_WifiTest/include",
-    "C:/Users/minif/Documents/7.Semester/TorqueKontrolProjekt/R4Wifi_WifiTest/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/cores/arduino/tinyusb",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/cores/arduino",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/cores/arduino/api/deprecated",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/cores/arduino/api/deprecated-avr-comp",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/variants/UNOWIFIR4",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/AnalogWave",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/Arduino_CAN/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/Arduino_FreeRTOS/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/Arduino_LED_Matrix/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/BlockDevices",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/EEPROM/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/FATFilesystem",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/HID",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/I2S",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/LittleFilesystem",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/OPAMP/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/OTAUpdate/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/Preferences/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/RTC/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/SDU/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/SPI",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/SoftwareATSE/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/SoftwareSerial/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/Storage",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/WDT/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/WiFiS3/src",
-    "C:/Users/minif/.platformio/packages/framework-arduinorenesas-uno/libraries/Wire",
-    ""
-  ],
+  "C_Cpp_Runner.includePaths": [],
   "C_Cpp_Runner.includeSearch": [
     "*",
     "**/*"
@@ -87,5 +56,11 @@
   "C_Cpp_Runner.showCompilationTime": false,
   "C_Cpp_Runner.useLinkTimeOptimization": false,
   "C_Cpp_Runner.msvcSecureNoWarnings": false,
-  "FSharp.suggestGitignore": false
+  "FSharp.suggestGitignore": false,
+  "files.associations": {
+    "array": "cpp",
+    "string": "cpp",
+    "string_view": "cpp",
+    "queue": "cpp"
+  }
 }
