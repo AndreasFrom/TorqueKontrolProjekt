@@ -11,7 +11,6 @@ public:
     void begin();
     static void MotorSensorISR();
     unsigned long getTimeBetweenSensors();
-    double getCurrentReading();
     double getFilteredRPM(double newRPM);
     double getFilteredCurrent(double newCurrent);
     bool isSensorTriggered() { return sensorTriggered; }
