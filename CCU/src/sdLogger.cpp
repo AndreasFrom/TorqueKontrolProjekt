@@ -1,26 +1,31 @@
 #include "sdLogger.h"
 
-SDLogger::SDLogger(const int spi_cs) {
-    if(!SD.begin(spi_cs)){
-        Serial.print("Could not init SD card!");
-    }else{
-        Serial.print("SD card init!");
-    }
+SDLogger::SDLogger(void) {
 }
 
-void SDLogger::init(const char *filename) {
+void SDLogger::init(const int spi_cs, const char *filename) {
+    if(!SD.begin(spi_cs)){
+        Serial.println("Could not init SD card!");
+    }else{
+        Serial.println("SD card init!");
+    }
     _filename = filename;
     _dataFile = SD.open(_filename, FILE_WRITE);
     if(_dataFile){
         _dataFile.println("timestamp, acc_x, acc_y, gyro_z");
         _dataFile.close();
+        Serial.println("SD init complete");
     }else{
-        Serial.print("Error opening file SD (Init)");
+        Serial.println("Error opening file SD (Init)");
     }
 }
 
 void SDLogger::addData(const dataBlock& data) {
-    _dataFile = SD.open(_filename, FILE_WRITE);
+    if(!_fileOpen){ // Check if file is already open
+        _dataFile = SD.open(_filename, FILE_WRITE);
+        _fileOpen = true;
+    }
+
     if(_dataFile){
         String line = 
             String(data.timestamp) + ", " +
@@ -28,26 +33,28 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.acc_y) + ", " + 
             String(data.gyro_z);
         _dataFile.println(line);
-        _dataFile.close();
     }else{
-        Serial.print("Error opening file SD (Add)");
+        Serial.println("Error opening file SD (Add)");
     }
 }
 
 bool SDLogger::getData(dataBlock &data) {
-    if(!_fileOpenForRead){ // Check if file is already open
+    if(!_fileOpen){ // Check if file is already open
         _dataFile = SD.open(_filename, FILE_READ);
+
         if(!_dataFile){
-            Serial.print("Error opening file SD (Get)");
+            Serial.println("Error opening file SD (Get)");
             return false;
         }
-        _fileOpenForRead = true;
-        
+        _fileOpen = true;
+            
         // Skip the header line
         if (_dataFile.available()) {
             _dataFile.readStringUntil('\n');
         }
+        Serial.println("Transmitting data...");
     }
+    
     
     if(_dataFile.available()){
         String line = _dataFile.readStringUntil('\n');
@@ -74,7 +81,15 @@ bool SDLogger::getData(dataBlock &data) {
         return true;
     }else{
         _dataFile.close();
-        Serial.print("Error opening file SD (Get)");
+        _fileOpen = false;
+        Serial.println("No more data avaliable");
         return false;
+    }
+}
+
+void SDLogger::close() {
+    if(_fileOpen){
+        _dataFile.close();
+        _fileOpen = false;
     }
 }

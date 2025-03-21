@@ -16,11 +16,11 @@ WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiClient client;
 
 // SD card
-#define CS 10
-#define SDO 11
-#define SDI 12
-#define CLK 13
-SDLogger sdLogger(CS);
+const int chipselect = 10;
+//#define SDO 11
+//#define SDI 12
+//#define CLK 13
+SDLogger sdLogger;
 
 // I2C
 #define SLAVE_ADDRESS_START 0x08 // Første I2C slaveadresse
@@ -53,10 +53,13 @@ void timerISR() {
 
 void setup() {
     Serial.begin(115200);
+    // Set the CS pin to output
+    pinMode(chipselect, OUTPUT);
+    
     i2cMaster.begin();
     wifiHandler.connectToWiFi();
     wifiHandler.startTCPServer();
-    sdLogger.init("data.csv");
+    sdLogger.init(chipselect,"data.csv");
 
     // Initialize Timer1 to trigger every 10ms
     AGTimer.init(SAMPLE_FREQ, timerISR);
@@ -66,6 +69,7 @@ void setup() {
         Serial.println("Sensor init fejlede!");
         while (1);
     }
+    Serial.println("Setup complete!");
 }
 
 void loop() {
@@ -104,6 +108,7 @@ void processClientMessage(String message) {
         client.println("ACK:STOP");
         dumpdata = true;
         logging = false;
+        sdLogger.close();
         Serial.println("Logging stopped!");
     } else if (message.startsWith("PID:")) {
         client.println("ACK:PID");

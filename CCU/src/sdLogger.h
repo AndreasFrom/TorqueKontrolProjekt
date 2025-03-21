@@ -20,14 +20,15 @@ struct dataBlock {
 
 class SDLogger {
 public:
-    SDLogger(const int spi_cs);
-    void init(const char* filename);
+    SDLogger(void);
+    void init(const int spi_cs, const char* filename);
     void addData(const dataBlock& data);
     bool getData(dataBlock& data);
+    void close();
 private:
     File _dataFile;
     const char* _filename;
-    bool _fileOpenForRead = false;
+    bool _fileOpen = false;
 };
 
 #endif
