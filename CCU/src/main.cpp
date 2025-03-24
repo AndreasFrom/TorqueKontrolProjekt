@@ -94,10 +94,10 @@ void setup() {
     }
     Serial.println("Setup complete!");
 
-    int setpoint0 = (int)(173/100);
-    int setpoint1 = (int)(205/100);
-    int setpoint2 = (int)(117/100);
-    int setpoint3 = (int)(164/100);
+    int setpoint0 = (int)(173);
+    int setpoint1 = 0;//(int)(205/100);
+    int setpoint2 = 0;//(int)(117/100);
+    int setpoint3 = 0;//(int)(164/100);
     // Temp until send from commander works
     i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint0);  
