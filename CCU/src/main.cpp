@@ -5,8 +5,9 @@
 #include "AGTimerR4.h" //https://github.com/washiyamagiken/AGTimer_R4_Library/tree/main
 #include "wifihandler.h" 
 #include <DFRobot_BMX160.h>
-#include "i2c_master.h"
 #include "sdLogger.h"
+#include "i2c_master.h"
+
 
 #define SEND_DATA_SERIAL false
 
@@ -17,9 +18,6 @@ WiFiClient client;
 
 // SD card
 const int chipselect = 10;
-//#define SDO 11
-//#define SDI 12
-//#define CLK 13
 SDLogger sdLogger;
 
 // I2C
@@ -28,41 +26,63 @@ I2CMaster i2cMaster;
 
 // IMU
 DFRobot_BMX160 bmx160;
-bool logging = false; // Flag til logging
-bool dumpdata = false; // Falg to control when to transfer data
 
-volatile bool controlFlag = false; // Flag to indicate when to run the control loop
+bool logging = false; // Flag til logging
 const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
+
+
+// Temp data
+float kp = 1.0;
+float ki = 10.0;
+float kd = 0.01;
+uint8_t mode = 0;                      
+float setpoint = 2.0;                  
+float setpoint_radius = 2.0; 
+
 
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
-void sendSensorData(WiFiClient &client);
 void processClientMessage(String message);
 
 void timerISR() {
-    //controlFlag = true; // Set the flag in the ISR
     if(logging){
         //Perform measurements and add to queue
-        unsigned long timestamp = millis();
-        sBmx160SensorData_t Ogyro = {0, 0, 0};
-        sBmx160SensorData_t Oaccel = {0, 0, 0};
-        sBmx160SensorData_t Omagn = {0, 0, 0};
+        unsigned long timestamp = millis();    
+
+        sBmx160SensorData_t Ogyro = {0, 0, 0};  
+        sBmx160SensorData_t Oaccel = {0, 0, 0}; 
+        sBmx160SensorData_t Omagn = {0, 0, 0};  
         //bmx160.getGyroACC(&Ogyro, &Oaccel);
         bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
-        sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Ogyro.z});
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
+
+        MUData MU0;
+        MUData MU1;
+        MUData MU2;
+        MUData MU3;
+        i2cMaster.requestData(SLAVE_ADDRESS_START, MU0);
+        i2cMaster.requestData(SLAVE_ADDRESS_START + 1, MU1);
+        i2cMaster.requestData(SLAVE_ADDRESS_START + 2, MU2);
+        i2cMaster.requestData(SLAVE_ADDRESS_START + 3, MU3);
+
+        sdLogger.addData({
+            timestamp, 
+            mode, setpoint, setpoint_radius, 
+            Oaccel.x, Oaccel.y, Ogyro.z,
+            kp, ki, kd,
+            MU0, MU1, MU2, MU3
+        });
     }
 }
 
 void setup() {
     Serial.begin(115200);
-    // Set the CS pin to output
-    pinMode(chipselect, OUTPUT);
+    pinMode(chipselect, OUTPUT); // Set the CS pin to output
     
     i2cMaster.begin();
     wifiHandler.connectToWiFi();
     wifiHandler.startTCPServer();
-    sdLogger.init(chipselect,"data.csv");
+    sdLogger.init(chipselect, "data.csv");
 
     // Initialize Timer1 to trigger every 10ms
     AGTimer.init(SAMPLE_FREQ, timerISR);
@@ -73,6 +93,16 @@ void setup() {
         while (1);
     }
     Serial.println("Setup complete!");
+
+    // Temp until send from commander works
+    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint);  
+    /*i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp, ki, kd);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);*/
 }
 
 void loop() {
@@ -89,10 +119,6 @@ void loop() {
 }
 
 void handleClientCommunication(WiFiClient &client) {
-    if(dumpdata){
-        sendSensorData(client);
-    }
-
     if (client.available()) {
         String message = client.readStringUntil('\n');
         processClientMessage(message);
@@ -107,12 +133,13 @@ void processClientMessage(String message) {
         client.println("ACK:START");
         logging = true;
         Serial.println("Logging started!");
+
     } else if (message == "STOP") {
         client.println("ACK:STOP");
-        //dumpdata = true;
         logging = false;
         sdLogger.close();
         Serial.println("Logging stopped!");
+        
     } else if (message.startsWith("PID:")) {
         client.println("ACK:PID");
         message.remove(0, 4);
@@ -142,9 +169,10 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
+
     } else if (message.startsWith("SETPOINT:")) {
         client.println("ACK:SETPOINT");
-        float setpoint = message.substring(9).toFloat();
+        setpoint = message.substring(9).toFloat();
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
         for (int i = 0; i < 4; i++) {
@@ -153,42 +181,5 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
-    }
-}
-
-void sendSensorData(WiFiClient &client) {
-
-    // Create struct to hold sensor data
-    dataBlock data;
-
-    // Check if data is avaliable in queue
-    if(sdLogger.getData(data)){ 
-        String message = "TIME: ";
-        message += data.timestamp;
-        message += " | IMU: Oaccel: ";
-        message += data.acc_x;
-        message += ", ";
-        message += data.acc_y;
-        message += " | Ogyro: ";
-        message += data.gyro_z;
-        message += "\n";
-
-        // Send the message with a single client.print call
-        client.print(message);
-    }else{
-        dumpdata = false;
-    }
-
-    if(SEND_DATA_SERIAL){
-        Serial.print("Sendt sensor data: ");
-        Serial.print("TIME: ");
-        Serial.print(data.timestamp); Serial.print(" | ");
-        Serial.print("IMU: ");
-        Serial.print("Oaccel: ");
-        Serial.print(data.acc_x); Serial.print(", ");
-        Serial.print(data.acc_y); Serial.print(" | ");
-        Serial.print("Ogyro: ");
-        Serial.print(data.gyro_z); //Serial.print(" | ");
-        Serial.println();
     }
 }

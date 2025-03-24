@@ -32,7 +32,7 @@ private:
     const double& _currentTorque;
     const double& _currentRPM;
     const double& _motorCurrent;
-    char _mode;
+    uint8_t _mode;
     double _setpoint;
     double _kp;
     double _ki;
