@@ -38,9 +38,14 @@ bool I2CMaster::requestData(uint8_t slave_adress, MUData& data) {
     Wire.requestFrom(slave_adress, 3); // Request 3 bytes
 
     if (Wire.available() >= 3) {
-        data.setpoint_recv = Wire.read() / 10;
-        data.value_recv = Wire.read() / 10;
-        data.current_recv = Wire.read() / 10;
+        uint8_t raw_setpoint = Wire.read();
+        uint8_t raw_value = Wire.read();
+        uint8_t raw_current = Wire.read();
+
+        data.setpoint_recv = static_cast<float>(raw_setpoint) / 10.0;
+        data.value_recv = static_cast<float>(raw_value) / 10.0;
+        data.current_recv = static_cast<float>(raw_current) / 10.0;
+        
 
         if(SEND_DATA_SERIAL){
             Serial.print("Received back: Setpoint = ");
