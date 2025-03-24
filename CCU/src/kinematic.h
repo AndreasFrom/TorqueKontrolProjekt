@@ -24,7 +24,9 @@ class Kinematic {
 public:
     Kinematic();
     void getVelocities_diff(float v_set, float r_set, Velocities_diff &velocities);
+    void getVelocities_diff_omega(float v_set, float omega_set, Velocities_diff &velocities);
     void getVelocities_acker(float v_set, float r_set, Velocities_acker &velocities);
+    void getVelocities_acker_omega(float v_set, float omega_set, Velocities_acker & velocities);
 
 private:
 };

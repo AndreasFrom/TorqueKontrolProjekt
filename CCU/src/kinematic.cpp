@@ -10,6 +10,10 @@ void Kinematic::getVelocities_diff(float v_set, float r_set, Velocities_diff &ve
     velocities.v_right = ( v_set * ( distance_ICR_right / r_set ) / ( cos( asin( (d_wheelbase * 0.5) / distance_ICR_right) ) ) );
 }
 
+void Kinematic::getVelocities_diff_omega(float v_set, float omega_set, Velocities_diff &velocities) {
+    float r_cal = ( v_set / omega_set );
+    getVelocities_diff(v_set, r_cal, velocities);
+}
 
 void Kinematic::getVelocities_acker(float v_set, float r_set, Velocities_acker &velocities) {
     float distance_ICR_left_rear   = ( r_set - ( d_track / 2 ) );
@@ -21,4 +25,9 @@ void Kinematic::getVelocities_acker(float v_set, float r_set, Velocities_acker &
     velocities.v_right_front = ( ( v_set * (distance_ICR_right_front / r_set) ) / cos( asin ( d_wheelbase / distance_ICR_right_front ) ) );
     velocities.v_left_rear   = ( v_set * ( distance_ICR_left_rear  / r_set ) );
     velocities.v_right_rear  = ( v_set * ( distance_ICR_right_rear / r_set ) );
+}
+
+void Kinematic::getVelocities_acker_omega(float v_set, float omega_set, Velocities_acker &velocities) {
+    float r_cal = ( v_set / omega_set );
+    getVelocities_acker(v_set, r_cal, velocities);
 }
