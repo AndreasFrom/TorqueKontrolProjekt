@@ -116,8 +116,8 @@ void I2CSlave::requestEvent() { // Send data to master
         // Return Setpoint and measured Speed/Torque/RPM
         switch (instance->_mode){
             case 0 : // Speed
-                Wire.write((byte)(instance->_setpoint * 10));
-                Wire.write((byte)(instance->_currentVelocity * 10));
+                Wire.write((byte)(instance->_setpoint * 71));
+                Wire.write((byte)(instance->_currentVelocity * 71));
                 break;
 
             case 1 : // Torque

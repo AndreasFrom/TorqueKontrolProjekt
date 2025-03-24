@@ -12,8 +12,8 @@
 #define SEND_DATA_SERIAL false
 
 // WiFi Config
-//WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
-WiFiHandler wifiHandler("net", "simsimbims", 4242);
+WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+//WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiClient client;
 
 // SD card
@@ -35,7 +35,7 @@ const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 float kp = 1.0;
 float ki = 10.0;
 float kd = 0.01;
-uint8_t mode = 0;                      
+uint8_t mode = 2;                      
 float setpoint = 2.0;                  
 float setpoint_radius = 2.0; 
 
@@ -94,15 +94,19 @@ void setup() {
     }
     Serial.println("Setup complete!");
 
+    int setpoint0 = (int)(173/100);
+    int setpoint1 = (int)(205/100);
+    int setpoint2 = (int)(117/100);
+    int setpoint3 = (int)(164/100);
     // Temp until send from commander works
     i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint);  
-    /*i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint0);  
+    i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint1);
     i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
     i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);*/
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3);
 }
 
 void loop() {
