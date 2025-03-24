@@ -12,7 +12,7 @@
 
 struct MUData
 {
-    uint8_t setpoint_recv;
+    float setpoint_recv;
     float value_recv;
     float current_recv;
 };

@@ -35,7 +35,7 @@ const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 float kp = 1.0;
 float ki = 10.0;
 float kd = 0.01;
-uint8_t mode = 2;                      
+uint8_t mode = 0;                      
 float setpoint = 3.0;                  
 float setpoint_radius = 2.0; 
 
