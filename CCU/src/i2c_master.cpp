@@ -26,6 +26,7 @@ bool I2CMaster::sendSetpoint(uint8_t slave_adress, float setpoint) {
     Wire.beginTransmission(slave_adress);
     Wire.write(CMD_SET);
     Wire.write(byte(setpoint*10));
+    Wire.endTransmission();
     
     if(SEND_DATA_SERIAL){
         Serial.println("Setpoint sent!");

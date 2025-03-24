@@ -62,8 +62,11 @@ char I2CSlave::getCtrlMode() {
 }
 
 void I2CSlave::receiveEvent(int bytes) { // Read data from master
+    Serial.print("Received I2C data bytes: ");
+    Serial.println(bytes);
     switch(Wire.read()){
         case CMD_SetPIDParam :
+            Serial.println("CMD_SetPIDParam");
             if (bytes == 5){
                 instance->_mode = Wire.read();
                 instance->_kp = Wire.read() / 10.0;
@@ -80,11 +83,13 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 Serial.print(instance->_ki);
                 Serial.print(", Kd = ");
                 Serial.println(instance->_kd);
+                break;
             }
             Serial.print("Missing I2C data");
             break;
 
         case CMD_SetPIDSetpoint :
+            Serial.println("CMD_SetPIDSetpoint");
             if (bytes == 2){
                 if (instance->_mode == 2)
                     instance->_setpoint = Wire.read() * 10;  // Scale for RPM
@@ -93,6 +98,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
 
                 Serial.print("Received: Setpoint = ");
                 Serial.print(instance->_setpoint);
+                break;
             }
             Serial.print("Missing I2C data");
             break;

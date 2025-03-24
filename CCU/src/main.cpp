@@ -96,7 +96,7 @@ void setup() {
 
     // Temp until send from commander works
     i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint);  
     i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
     i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp, ki, kd);
@@ -169,10 +169,10 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
-        
+
     } else if (message.startsWith("SETPOINT:")) {
         client.println("ACK:SETPOINT");
-        float setpoint = message.substring(9).toFloat();
+        setpoint = message.substring(9).toFloat();
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
         for (int i = 0; i < 4; i++) {
