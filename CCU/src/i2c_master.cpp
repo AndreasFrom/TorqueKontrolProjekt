@@ -67,20 +67,21 @@ bool I2CMaster::requestData(uint8_t slave_adress, MUData& data) {
         switch (_mode)
         {
         case 0: 
-            data.setpoint_recv = static_cast<float>(raw_setpoint) / SCALE_FACTOR_SPEED;
-            data.value_recv = static_cast<float>(raw_value) / SCALE_FACTOR_SPEED;
+            data.setpoint_recv = static_cast<uint8_t>(raw_setpoint) / SCALE_FACTOR_SPEED;
+            data.value_recv = static_cast<uint8_t>(raw_value) / SCALE_FACTOR_SPEED;
             break;
         case 1:
-            data.setpoint_recv = static_cast<float>(raw_setpoint) /  SCALE_FACTOR_TORQUE;
-            data.value_recv = static_cast<float>(raw_value) / SCALE_FACTOR_TORQUE;
+            data.setpoint_recv = static_cast<uint8_t>(raw_setpoint) /  SCALE_FACTOR_TORQUE;
+            data.value_recv = static_cast<uint8_t>(raw_value) / SCALE_FACTOR_TORQUE;
             break;
         default:
-            data.setpoint_recv = static_cast<float>(raw_setpoint) / SCALE_FACTOR_RPM;
-            data.current_recv = static_cast<float>(raw_current) / SCALE_FACTOR_RPM;
+            data.setpoint_recv = (double)((raw_setpoint) / SCALE_FACTOR_RPM);
+            data.value_recv = (double)((raw_value) / SCALE_FACTOR_RPM);
+            Serial.println(data.value_recv);
             break;
         }
         
-        data.current_recv = static_cast<float>(raw_current) / SCALE_FACTOR_CURRENT;
+        data.current_recv = static_cast<double>(raw_current) / SCALE_FACTOR_CURRENT;
         
 
         if(SEND_DATA_SERIAL){

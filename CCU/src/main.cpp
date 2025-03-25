@@ -30,7 +30,7 @@ DFRobot_BMX160 bmx160;
 bool logging = false; // Flag til logging
 const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
-
+double start_time = 0;
 // Temp data
 float kp = 1.0;
 float ki = 10.0;
@@ -38,6 +38,7 @@ float kd = 0.01;
 uint8_t mode = 2;                      
 float setpoint = 2.0;                  
 float setpoint_radius = 2.0; 
+
 
 
 // Prototypes
@@ -65,6 +66,8 @@ void timerISR() {
         i2cMaster.requestData(SLAVE_ADDRESS_START + 2, MU2);
         i2cMaster.requestData(SLAVE_ADDRESS_START + 3, MU3);
 
+        Serial.println(MU0.value_recv);
+
         sdLogger.addData({
             timestamp, 
             mode, setpoint, setpoint_radius, 
@@ -76,13 +79,15 @@ void timerISR() {
 }
 
 void setup() {
+    
     Serial.begin(115200);
     pinMode(chipselect, OUTPUT); // Set the CS pin to output
     
     i2cMaster.begin();
-    wifiHandler.connectToWiFi();
-    wifiHandler.startTCPServer();
+    //wifiHandler.connectToWiFi();
+    //wifiHandler.startTCPServer();
     sdLogger.init(chipselect, "data.csv");
+    delay(1000); // Wait for SD card to initialize
 
     // Initialize Timer1 to trigger every 10ms
     AGTimer.init(SAMPLE_FREQ, timerISR);
@@ -94,9 +99,9 @@ void setup() {
     }
     Serial.println("Setup complete!");
 
-    int setpoint0 = (int)(173);
+    int setpoint0 = 500;
     int setpoint1 = 0;//(int)(205/100);
-    int setpoint2 = 0;//(int)(117/100);
+    int setpoint2 = 500;//(int)(117/100);
     int setpoint3 = 0;//(int)(164/100);
     // Temp until send from commander works
     i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
@@ -107,10 +112,12 @@ void setup() {
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
     i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3);
+
+    start_time = millis();
 }
 
 void loop() {
-    client = wifiHandler.acceptClient();
+    /*client = wifiHandler.acceptClient();
     if (client) {
         Serial.println("Client connected!");
         while (client.connected()) {
@@ -119,7 +126,18 @@ void loop() {
         client.stop();
         logging = false; // Reset logging flag when client disconnects
         Serial.println("Client disconnected.");
+    }*/
+    int time = millis() - start_time;
+    if (time < 10000) { // Stop logging after 10 seconds
+        logging = true;
+    } else {
+        logging = false;
+        sdLogger.close();
+        Serial.println("Logging stopped at: " + String(time));
     }
+
+    delay(20); // 50Hz
+
 }
 
 void handleClientCommunication(WiFiClient &client) {
