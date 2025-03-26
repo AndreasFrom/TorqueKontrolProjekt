@@ -77,7 +77,6 @@ bool I2CMaster::requestData(uint8_t slave_adress, MUData& data) {
         default:
             data.setpoint_recv = (double)((raw_setpoint) / SCALE_FACTOR_RPM);
             data.value_recv = (double)((raw_value) / SCALE_FACTOR_RPM);
-            Serial.println(data.value_recv);
             break;
         }
         

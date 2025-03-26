@@ -7,8 +7,8 @@ from datetime import datetime
 
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
-#TCP_IP = "192.168.164.97"
-TCP_IP = "192.168.87.97"
+TCP_IP = "192.168.164.97"
+#TCP_IP = "192.168.87.97"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -69,7 +69,7 @@ def send_pid_setpoint():
         ki = float(entry_ki.get())
         kd = float(entry_kd.get())
         setpoint = float(entry_setpoint.get())
-        mode = float(label_mode.get())
+        mode = float(entry_mode.get())
         send_command(f"PID:{kp},{ki},{kd},{setpoint},{mode}")
     except ValueError:
         print("Error: Invalid input for PID parameters or setpoint")
@@ -191,26 +191,31 @@ label_kp = tk.Label(root, text="Kp:")
 label_kp.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 entry_kp = tk.Entry(root)
 entry_kp.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+entry_kp.insert(0, "1.0")
 
 label_ki = tk.Label(root, text="Ki:")
 label_ki.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 entry_ki = tk.Entry(root)
 entry_ki.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+entry_ki.insert(0, "10.0")
 
 label_kd = tk.Label(root, text="Kd:")
 label_kd.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 entry_kd = tk.Entry(root)
 entry_kd.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+entry_kd.insert(0, "0.01")
 
 label_setpoint = tk.Label(root, text="Setpoint:")
 label_setpoint.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 entry_setpoint = tk.Entry(root)
 entry_setpoint.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+entry_setpoint.insert(0, "100.0")
 
 label_mode = tk.Label(root, text="Mode:")
 label_mode.grid(row=5, column=0, padx=10, pady=5, sticky="w")
-label_mode = tk.Entry(root)
-label_mode.grid(row=5, column=1, padx=10, pady=5, sticky="w")
+entry_mode = tk.Entry(root)
+entry_mode.grid(row=5, column=1, padx=10, pady=5, sticky="w")
+entry_mode.insert(0, "2")
 
 button_send_pid = tk.Button(root, text="Send PID & Setpoint", command=send_pid_setpoint)
 button_send_pid.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="w")

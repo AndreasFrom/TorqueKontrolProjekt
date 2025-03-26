@@ -40,10 +40,10 @@ uint8_t mode = 2;
 float setpoint = 2.0;                  
 float setpoint_radius = 2.0; 
 
-int setpoint0 = 42; // left front
-int setpoint1 = 520; // right front
-int setpoint2 = 42; // left rear
-int setpoint3 = 520; // right rear
+int setpoint0 = 100; // left front
+int setpoint1 = 600; // right front
+int setpoint2 = 100; // left rear
+int setpoint3 = 600; // right rear
 
 
 
@@ -71,8 +71,6 @@ void timerISR() {
         i2cMaster.requestData(SLAVE_ADDRESS_START + 1, MU1);
         i2cMaster.requestData(SLAVE_ADDRESS_START + 2, MU2);
         i2cMaster.requestData(SLAVE_ADDRESS_START + 3, MU3);
-
-        Serial.println(MU0.value_recv);
 
         sdLogger.addData({
             timestamp, 
@@ -115,7 +113,7 @@ void setup() {
     i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3); */
 
-    start_time = millis();
+    //start_time = millis();
 }
 
 void loop() {
@@ -202,10 +200,6 @@ void processClientMessage(String message) {
 
         for (int i = 0; i < 4; i++) {
             bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, mode, kp, ki, kd);
-            if (!success) {
-                Serial.println("I2C communication failed!");
-            }
-            bool success = i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + i, setpoint);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
