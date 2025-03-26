@@ -5,7 +5,7 @@ from datetime import datetime
 import plotly.io as pio
 
 # Load and prepare data
-df = pd.read_csv('circledata_131_174_131_174_Rubber_25_03_2025.CSV')
+df = pd.read_csv('circledata_100_600_100_600_rubber_26_03_2025.CSV')
 df.columns = df.columns.str.strip()
 motors = ['MU0', 'MU1', 'MU2', 'MU3']
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
@@ -18,7 +18,7 @@ fig = make_subplots(
     subplot_titles=(
         'Acceleration X (m/s²)',
         'Acceleration Y (m/s²)',
-        'Gyro Z (rad/s)',
+        'Gyro Z (deg°/s)',
         'Motor Setpoints vs Actual Values',
         'All Motor Currents'
     ),
