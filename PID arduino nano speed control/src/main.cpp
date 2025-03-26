@@ -35,7 +35,7 @@ bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are availab
 int step = 0;
 
 // Objects
-MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
+MotorPID pid(1, 10, 0.01, 300, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
@@ -80,19 +80,8 @@ void controlLoop() {
     analogWrite(PWM_PIN, pwmValue);
 
 
-/*     unsigned long timestamp = millis(); 
-
-    Serial.print(timestamp); 
-    Serial.print(",");
-    Serial.print(motorSensor.getTimeBetweenSensors());
-    Serial.print(",");
-    Serial.print(currentRPM);
-    Serial.print(",");
-    Serial.print(currentVelocity);
-    Serial.print(",");
-    Serial.println(pwmValue);
-    Serial.print(",");
-    Serial.println(motorCurrent); */
+    // Debug print current
+    Serial.println(motorCurrent);
 }
 
 void timerISR() {
