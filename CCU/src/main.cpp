@@ -12,8 +12,8 @@
 #define SEND_DATA_SERIAL false
 
 // WiFi Config
-WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
-//WiFiHandler wifiHandler("net", "simsimbims", 4242);
+//WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
+WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiClient client;
 
 // SD card
@@ -31,6 +31,7 @@ bool logging = false; // Flag til logging
 const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
 double start_time = 0;
+
 // Temp data
 float kp = 1.0;
 float ki = 10.0;
@@ -38,6 +39,11 @@ float kd = 0.01;
 uint8_t mode = 2;                      
 float setpoint = 2.0;                  
 float setpoint_radius = 2.0; 
+
+int setpoint0 = 42; // left front
+int setpoint1 = 520; // right front
+int setpoint2 = 42; // left rear
+int setpoint3 = 520; // right rear
 
 
 
@@ -84,8 +90,8 @@ void setup() {
     pinMode(chipselect, OUTPUT); // Set the CS pin to output
     
     i2cMaster.begin();
-    //wifiHandler.connectToWiFi();
-    //wifiHandler.startTCPServer();
+    wifiHandler.connectToWiFi();
+    wifiHandler.startTCPServer();
     sdLogger.init(chipselect, "data.csv");
     delay(1000); // Wait for SD card to initialize
 
@@ -99,25 +105,21 @@ void setup() {
     }
     Serial.println("Setup complete!");
 
-    int setpoint0 = 131;
-    int setpoint1 = 174;//(int)(205/100);
-    int setpoint2 = 131;//(int)(117/100);
-    int setpoint3 = 174;//(int)(164/100);
     // Temp until send from commander works
-    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
+ /*    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint0);  
     i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint1);
     i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp, ki, kd);
     i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
     i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3);
+    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3); */
 
     start_time = millis();
 }
 
 void loop() {
-    /*client = wifiHandler.acceptClient();
+    client = wifiHandler.acceptClient();
     if (client) {
         Serial.println("Client connected!");
         while (client.connected()) {
@@ -126,17 +128,17 @@ void loop() {
         client.stop();
         logging = false; // Reset logging flag when client disconnects
         Serial.println("Client disconnected.");
-    }*/
-    int time = millis() - start_time;
+    }
+/*     int time = millis() - start_time;
     if (time < 10000) { // Stop logging after 10 seconds
         logging = true;
     } else {
         logging = false;
         sdLogger.close();
         Serial.println("Logging stopped at: " + String(time));
-    }
+    } */
 
-    delay(20); // 50Hz
+    //delay(20); // 50Hz
 
 }
 
@@ -154,12 +156,22 @@ void processClientMessage(String message) {
     if (message == "START") {
         client.println("ACK:START");
         logging = true;
+        // Set all setpoints
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   setpoint0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint1);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3);
         Serial.println("Logging started!");
 
     } else if (message == "STOP") {
         client.println("ACK:STOP");
         logging = false;
         sdLogger.close();
+        // Reset all setpoints
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, 0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, 0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, 0);
         Serial.println("Logging stopped!");
         
     } else if (message.startsWith("PID:")) {
@@ -168,25 +180,32 @@ void processClientMessage(String message) {
         int comma1 = message.indexOf(',');
         int comma2 = message.indexOf(',', comma1 + 1);
         int comma3 = message.indexOf(',', comma2 + 1);
+        int comma4 = message.indexOf(',', comma3 + 1);
 
-        if (comma1 == -1 || comma2 == -1 || comma3 == -1) {
+        if (comma1 == -1 || comma2 == -1 || comma3 == -1 || comma4 == -1) {
             Serial.println("Fejl: Forkert PID-format");
             return;
         }
 
-        float kp = message.substring(0, comma1).toFloat();
-        float ki = message.substring(comma1 + 1, comma2).toFloat();
-        float kd = message.substring(comma2 + 1, comma3).toFloat();
-        float setpoint = message.substring(comma3 + 1).toFloat();
+        kp = message.substring(0, comma1).toFloat();
+        ki = message.substring(comma1 + 1, comma2).toFloat();
+        kd = message.substring(comma2 + 1, comma3).toFloat();
+        setpoint = message.substring(comma3 + 1, comma4).toFloat();
+        mode = message.substring(comma4 + 1).toInt();
 
         Serial.print("Parsed PID: ");
         Serial.print("Setpoint: "); Serial.print(setpoint);
+        Serial.print(" Mode: "); Serial.print(mode);
         Serial.print(" Kp: "); Serial.print(kp);
         Serial.print(" Ki: "); Serial.print(ki);
         Serial.print(" Kd: "); Serial.println(kd);
 
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, setpoint, kp, ki, kd);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, mode, kp, ki, kd);
+            if (!success) {
+                Serial.println("I2C communication failed!");
+            }
+            bool success = i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + i, setpoint);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
@@ -198,7 +217,7 @@ void processClientMessage(String message) {
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, setpoint, -1, -1, -1);
+            bool success = i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + i, setpoint);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
