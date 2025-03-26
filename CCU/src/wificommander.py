@@ -8,31 +8,16 @@ from datetime import datetime
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
 TCP_IP = "192.168.164.97"
+#TCP_IP = "192.168.87.97"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
 logging = False
-stop_command_sent = False
 sock = None
 csv_file = None
 csv_writer = None
 
 debug = False
-
-def create_csv_file():
-    """Create a CSV file with a timestamped filename."""
-    global csv_file, csv_writer
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = f"sensor_data_{timestamp}.csv"
-    csv_file = open(filename, mode="w", newline="")
-    csv_writer = csv.writer(csv_file)
-    csv_writer.writerow(["Timestamp", "Oaccel_x", "Oaccel_y", "Ogyro_z"])
-
-def close_csv_file():
-    """Close the CSV file."""
-    global csv_file
-    if csv_file:
-        csv_file.close()
 
 def send_command(command):
     """Send a command to the Arduino and wait for acknowledgments and follow-ups."""
@@ -64,19 +49,17 @@ def send_command(command):
 
 def start_logging():
     """Start logging by sending the START command."""
-    global logging, stop_command_sent
+    global logging
     logging = True
-    stop_command_sent = False
-    create_csv_file()
     send_command("START")
     threading.Thread(target=receive_data, daemon=True).start()
 
 def stop_logging():
     """Stop logging by sending the STOP command."""
-    global logging, stop_command_sent
-    stop_command_sent = True
+    global logging
+    logging = False
     send_command("STOP")
-    #close_csv_file()
+
 
 # Function to send PID parameters and setpoint
 def send_pid_setpoint():
@@ -86,7 +69,8 @@ def send_pid_setpoint():
         ki = float(entry_ki.get())
         kd = float(entry_kd.get())
         setpoint = float(entry_setpoint.get())
-        send_command(f"PID:{kp},{ki},{kd},{setpoint}")
+        mode = float(entry_mode.get())
+        send_command(f"PID:{kp},{ki},{kd},{setpoint},{mode}")
     except ValueError:
         print("Error: Invalid input for PID parameters or setpoint")
 
@@ -105,13 +89,13 @@ def receive_data():
     """Receive sensor data from the Arduino and log it to the CSV file."""
     global sock, logging, csv_writer
     buffer = ""  # Buffer to store incomplete data
-    while logging or stop_command_sent:
+    while logging:
         try:
             data = sock.recv(1024).decode()
             if data:
                 buffer += data  # Append incoming data to the buffer
 
-                # Process complete lines
+                """ # Process complete lines
                 while "\n" in buffer:
                     line, buffer = buffer.split("\n", 1)  # Split at the first newline
                     line = line.strip()  # Remove leading/trailing whitespace
@@ -148,16 +132,13 @@ def receive_data():
                                     sensor_values["Oaccel_x"], sensor_values["Oaccel_y"], sensor_values["Ogyro_z"],
                                 ])
                             else:
-                                print("Error: Invalid sensor data format")
+                                print("Error: Invalid sensor data format") """
                         
         except socket.timeout:
             continue
         except Exception as e:
             print(f"Error receiving data: {e}")
             break
-
-    logging = False
-    close_csv_file()
 
 # Create the main UI window
 root = tk.Tk()
@@ -210,33 +191,43 @@ label_kp = tk.Label(root, text="Kp:")
 label_kp.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 entry_kp = tk.Entry(root)
 entry_kp.grid(row=1, column=1, padx=10, pady=5, sticky="w")
+entry_kp.insert(0, "1.0")
 
 label_ki = tk.Label(root, text="Ki:")
 label_ki.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 entry_ki = tk.Entry(root)
 entry_ki.grid(row=2, column=1, padx=10, pady=5, sticky="w")
+entry_ki.insert(0, "10.0")
 
 label_kd = tk.Label(root, text="Kd:")
 label_kd.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 entry_kd = tk.Entry(root)
 entry_kd.grid(row=3, column=1, padx=10, pady=5, sticky="w")
+entry_kd.insert(0, "0.01")
 
 label_setpoint = tk.Label(root, text="Setpoint:")
 label_setpoint.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 entry_setpoint = tk.Entry(root)
 entry_setpoint.grid(row=4, column=1, padx=10, pady=5, sticky="w")
+entry_setpoint.insert(0, "100.0")
+
+label_mode = tk.Label(root, text="Mode:")
+label_mode.grid(row=5, column=0, padx=10, pady=5, sticky="w")
+entry_mode = tk.Entry(root)
+entry_mode.grid(row=5, column=1, padx=10, pady=5, sticky="w")
+entry_mode.insert(0, "2")
 
 button_send_pid = tk.Button(root, text="Send PID & Setpoint", command=send_pid_setpoint)
-button_send_pid.grid(row=5, column=0, columnspan=2, padx=10, pady=5, sticky="w")
+button_send_pid.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="w")
 
 button_send_setpoint = tk.Button(root, text="Send Setpoint Only", command=send_setpoint_only)
-button_send_setpoint.grid(row=5, column=1, columnspan=2, padx=10, pady=10, sticky="w")
+button_send_setpoint.grid(row=6, column=1, columnspan=2, padx=10, pady=10, sticky="w")
 
 # UI Elements for logging
-button_start = tk.Button(root, text="Start Logging", command=start_logging)
+button_start = tk.Button(root, text="Start", command=start_logging)
 button_start.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 
-button_stop = tk.Button(root, text="Stop Logging", command=stop_logging)
+button_stop = tk.Button(root, text="Stop", command=stop_logging)
 button_stop.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 
 # Text box for logging

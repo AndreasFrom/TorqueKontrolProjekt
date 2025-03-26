@@ -3,6 +3,11 @@
 
 #define SEND_DATA_SERIAL false
 
+#define SCALE_FACTOR_SPEED 71.0
+#define SCALE_FACTOR_TORQUE 510.0
+#define SCALE_FACTOR_RPM 0.25
+#define SCALE_FACTOR_CURRENT 57.0
+
 #include <Wire.h>
 #include <Arduino.h>
 
@@ -12,9 +17,9 @@
 
 struct MUData
 {
-    float setpoint_recv;
-    float value_recv;
-    float current_recv;
+    double setpoint_recv;
+    double value_recv;
+    double current_recv;
 };
 
 class I2CMaster {
@@ -27,6 +32,7 @@ public:
 
 private:
     uint8_t _slaveAddress;
+    uint8_t _mode = 0;
 };
 
 #endif

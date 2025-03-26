@@ -1,5 +1,14 @@
 #include "i2c_slave.h"
 
+
+// +--------------------+---------------------+----------+
+// |        MODE        |                     |          |
+// +--------------------+---------------------+----------+
+// |         1          |          2          |    3     |
+// | SPEED CONTROL MODE | TORQUE CONTROL MODE | RPM MODE |
+// +--------------------+---------------------+----------+
+
+
 I2CSlave* I2CSlave::instance = nullptr;
 
 I2CSlave::I2CSlave(double& currentVelocity, double& currentTorque, double& currentRPM, double& motorCurrent) : 
@@ -91,10 +100,20 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
         case CMD_SetPIDSetpoint :
             Serial.println("CMD_SetPIDSetpoint");
             if (bytes == 2){
-                if (instance->_mode == 2)
-                    instance->_setpoint = Wire.read() * 10;  // Scale for RPM
-                else
-                    instance->_setpoint = Wire.read() / 10;  // Scale back
+                switch (instance->_mode)    
+                {
+                case 0:
+                instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
+                    break;
+                case 1:
+                    instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque
+                    break;
+                case 2:
+                    instance->_setpoint = Wire.read() / SCALE_FACTOR_RPM;  // Scale for RPM
+                    break;
+                default:
+                    break;
+                }
 
                 Serial.print("Received: Setpoint = ");
                 Serial.print(instance->_setpoint);
@@ -111,23 +130,24 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
 }
 
 
+
 void I2CSlave::requestEvent() { // Send data to master
     if (instance) {
         // Return Setpoint and measured Speed/Torque/RPM
         switch (instance->_mode){
             case 0 : // Speed
-                Wire.write((byte)(instance->_setpoint * 10));
-                Wire.write((byte)(instance->_currentVelocity * 10));
+                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_SPEED));  
+                Wire.write((byte)(instance->_currentVelocity * SCALE_FACTOR_SPEED));
                 break;
 
             case 1 : // Torque
-                Wire.write((byte)(instance->_setpoint * 10));
-                Wire.write((byte)(instance->_currentTorque * 10));
+                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_TORQUE));
+                Wire.write((byte)(instance->_currentTorque * SCALE_FACTOR_TORQUE));
                 break;
 
             case 2 : // RPM (Secret mode)
-                Wire.write((byte)(instance->_setpoint / 10));
-                Wire.write((byte)(instance->_currentRPM) / 10);
+                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_RPM));
+                Wire.write((byte)(instance->_currentRPM * SCALE_FACTOR_RPM));
                 break;
 
             default :
@@ -136,6 +156,6 @@ void I2CSlave::requestEvent() { // Send data to master
         }
 
         // Return current
-        Wire.write((byte)(instance->_motorCurrent * 10));
+        Wire.write((byte)(instance->_motorCurrent * SCALE_FACTOR_CURRENT));
     }
 }

@@ -8,6 +8,11 @@
 #define CMD_SetPIDParam 0x10
 #define CMD_SetPIDSetpoint 0x20
 
+#define SCALE_FACTOR_SPEED 71.0
+#define SCALE_FACTOR_TORQUE 510.0
+#define SCALE_FACTOR_RPM 0.25
+#define SCALE_FACTOR_CURRENT 57.0
+
 #include <Wire.h>
 #include <Arduino.h>
 
