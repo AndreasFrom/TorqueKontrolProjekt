@@ -1,15 +1,14 @@
 import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
-from datetime import datetime, timedelta
+from datetime import datetime
 import plotly.io as pio
 
-# Load and prepare data
-df = pd.read_csv('filtertest.CSV')
-df.columns = df.columns.str.strip()
+# Load the CSV file and set the header manually
+column_names = ['accel_x', 'accel_y', 'gyro_z', 'filter_x', 'filter_y', 'filter_z']
+df = pd.read_csv('filtertest.CSV', header=None, names=column_names)
 
-# Generate a synthetic timestamp column if it doesn't exist
-# Assuming a fixed time interval of 1 second between rows
+# Generate a synthetic timestamp column
 df['timestamp'] = pd.date_range(start=datetime.now(), periods=len(df), freq='S')
 
 # Create a comprehensive figure with subplots
