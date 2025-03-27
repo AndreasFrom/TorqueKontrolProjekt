@@ -55,7 +55,7 @@ void loop() {
   float filteredAccelY = accelFilterY.updateEstimate(accel.y);
   float filteredAccelZ = accelFilterZ.updateEstimate(accel.z);
 
-  // Print magnetometer data (raw)
+/*   // Print magnetometer data (raw)
   Serial.print("MAG ");
   Serial.print("X: "); Serial.print(magn.x, 2); Serial.print(" uT\t");
   Serial.print("Y: "); Serial.print(magn.y, 2); Serial.print(" uT\t");
@@ -81,7 +81,18 @@ void loop() {
   Serial.print("ACC FIL ");
   Serial.print("X: "); Serial.print(filteredAccelX, 2); Serial.print(" m/s²\t");
   Serial.print("Y: "); Serial.print(filteredAccelY, 2); Serial.print(" m/s²\t");
-  Serial.print("Z: "); Serial.print(filteredAccelZ, 2); Serial.println(" m/s²");
+  Serial.print("Z: "); Serial.print(filteredAccelZ, 2); Serial.println(" m/s²"); */
+
+  String data =
+    String(accel.x) + "," +
+    String(accel.y) + "," +
+    String(gyro.z) + "," +
+    String(filteredAccelX) + "," +
+    String(filteredAccelY) + "," +
+    String(filteredGyroZ);
+
+  Serial.println(data);
+
 
   Serial.println("");
   delay(500);
