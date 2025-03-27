@@ -103,6 +103,9 @@ void setup() {
 
     // Initialize I2C Slave
     i2cSlave.begin();
+
+    i2cSlave.setCtrlMode(2); // Temp
+    i2cSlave.setSetpoint(300); // Temp
 }
 
 void loop() {
