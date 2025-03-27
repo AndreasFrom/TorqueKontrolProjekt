@@ -1,6 +1,7 @@
 import cv2
 import numpy as np
 import os
+import csv
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
     cap = cv2.VideoCapture(video_path)
@@ -82,11 +83,29 @@ def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, fr
 
     return marker_locations, circle_center
 
+
+import csv
+import os
+
+def save_to_csv(data, output_csv):
+    header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
+
+    # Ensure directory exists
+    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+
+    # Write data to CSV file
+    with open(output_csv, mode="w", newline="") as file:
+        writer = csv.writer(file)
+        writer.writerow(header)
+        writer.writerows(data)
+
+    print(f"CSV file saved at {output_csv}")
+
+
 def main():
     video_path = 'aurco_video.mp4'
-    output_dir = os.path.join(os.path.dirname(__file__), 'dataprocessing')
-    os.makedirs(output_dir, exist_ok=True)  # Create if not exists
-    output_path_video = os.path.join(output_dir, 'output_warped_video.mp4')
+    output_path = os.path.join(os.path.dirname(__file__), 'dataprocessing/output_warped_video.mp4')
+    output_csv = os.path.join(os.path.dirname(__file__), 'dataprocessing/marker_positions.csv')
 
     frame_width, frame_height = 400, 400
     real_world_distance = 1
@@ -94,11 +113,14 @@ def main():
     corner_ids = [6, 7, 8, 9]
     valid_ids = set(range(6, 12))
 
-    cap, out = initialize_video(video_path, output_path_video, frame_width, frame_height, int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)))
+    cap, out = initialize_video(video_path, output_path, frame_width, frame_height, int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)))
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     parameters = cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
     tracked_markers = {}
+
+    frame_index = 0
+    csv_data = []  # Store data for CSV
 
     while True:
         ret, frame = cap.read()
@@ -115,9 +137,24 @@ def main():
             )
             out.write(warped_image)
 
+            # Save marker positions & distances
+            for marker_id, (x, y) in marker_locations.items():
+                if circle_center is not None:
+                    distance = np.linalg.norm(np.array(circle_center) - np.array([y * frame_width, x * frame_height]))
+                else:
+                    distance = None
+                csv_data.append((frame_index, marker_id, x, y, distance))
+
+        frame_index += 1
+
     cap.release()
     out.release()
-    print(f"Warped video saved to {output_path_video}")
+
+    # Save data to CSV
+    save_to_csv(csv_data, output_csv)
+
+    print(f"Warped video saved to {output_path}")
+    print("Processing complete.")
 
 if __name__ == "__main__":
     main()
