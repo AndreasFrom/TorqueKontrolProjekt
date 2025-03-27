@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import os
 import csv
+from tqdm import tqdm
 
 CAR_MARKER = 11  
 
@@ -112,6 +113,8 @@ def main():
     valid_ids = set(range(6, 12))
 
     cap, out = initialize_video(video_path, output_path, frame_width, frame_height, int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)))
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # Get the total number of frames
+
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     parameters = cv2.aruco.DetectorParameters()
     detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
@@ -119,48 +122,47 @@ def main():
 
     frame_index = 0
     csv_data = []  
-    last_circle_center = None  # Store last known circle position
+    last_circle_center = None  
 
-    while True:
-        ret, frame = cap.read()
-        if not ret:
-            break
+    # Wrap the loop with tqdm for progress tracking
+    with tqdm(total=total_frames, desc="Processing Video", unit="frame") as pbar:
+        while True:
+            ret, frame = cap.read()
+            if not ret:
+                break
 
-        corners, ids, detected_ids = detect_markers(detector, frame, valid_ids, tracked_markers)
-        selected_corners, selected_ids, other_corners, other_ids = process_corners(tracked_markers, corner_ids)
+            corners, ids, detected_ids = detect_markers(detector, frame, valid_ids, tracked_markers)
+            selected_corners, selected_ids, other_corners, other_ids = process_corners(tracked_markers, corner_ids)
 
-        if len(selected_corners) == 4:
-            warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
-            marker_locations, circle_center = calculate_marker_locations(
-                other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
-            )
+            if len(selected_corners) == 4:
+                warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
+                marker_locations, circle_center = calculate_marker_locations(
+                    other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
+                )
 
-            # Keep track of the last detected circle center
-            if circle_center is not None:
-                last_circle_center = circle_center
+                if circle_center is not None:
+                    last_circle_center = circle_center
 
-            out.write(warped_image)
+                out.write(warped_image)
 
-            # Only track marker ID CAR_MARKER in the CSV file
-            if CAR_MARKER in marker_locations:
-                x, y = marker_locations[CAR_MARKER]
-                if last_circle_center is not None:
-                    distance = np.linalg.norm(np.array(last_circle_center) - np.array([x * frame_width, y * frame_height]))
-                else:
-                    distance = None  # No valid circle center detected yet
-                
-                csv_data.append((frame_index, CAR_MARKER, x, y, distance))
+                if CAR_MARKER in marker_locations:
+                    x, y = marker_locations[CAR_MARKER]
+                    if last_circle_center is not None:
+                        distance = np.linalg.norm(np.array(last_circle_center) - np.array([x * frame_width, y * frame_height]))
+                    else:
+                        distance = None  
 
-        frame_index += 1
+                    csv_data.append((frame_index, CAR_MARKER, x, y, distance))
+
+            frame_index += 1
+            pbar.update(1)  # Update the progress bar by 1 frame
 
     cap.release()
     out.release()
-
     save_to_csv(csv_data, output_csv)
 
     print(f"Warped video saved to {output_path}")
     print("Processing complete.")
-
 
 if __name__ == "__main__":
     main()
