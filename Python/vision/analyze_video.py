@@ -4,9 +4,13 @@ import os
 import csv
 from tqdm import tqdm
 import sys
+from collections import deque
 
+# Constants
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
+MAX_DISTANCE_THRESHOLD = 200  # Maximum allowed distance between consecutive points in meters
+MOVING_AVG_WINDOW = 10  # Number of frames to average over
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
     try:
@@ -39,15 +43,52 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
         if ids is not None:
             for i, marker_id in enumerate(ids.flatten()):
                 if marker_id in valid_ids:
+                    # Calculate current marker center position
+                    current_center = np.mean(corners[i][0], axis=0)
+                    
                     if marker_id not in tracked_markers:
-                        tracked_markers[marker_id] = {'corners': corners[i], 'last_known_corners': corners[i]}
+                        # Initialize tracking data structure
+                        tracked_markers[marker_id] = {
+                            'corners': corners[i],
+                            'last_known_corners': corners[i],
+                            'position_history': deque(maxlen=MOVING_AVG_WINDOW),
+                            'last_valid_position': current_center,
+                            'smoothed_position': None
+                        }
+                        # Initialize history with current position
+                        tracked_markers[marker_id]['position_history'].append(current_center)
                     else:
-                        tracked_markers[marker_id]['corners'] = corners[i]
-                        tracked_markers[marker_id]['last_known_corners'] = corners[i]
+                        # Check distance from last valid position
+                        last_pos = tracked_markers[marker_id]['last_valid_position']
+                        distance = np.linalg.norm(current_center - last_pos) if last_pos is not None else 0
+                        
+                        if last_pos is None or distance <= MAX_DISTANCE_THRESHOLD:
+                            # Accept this detection
+                            tracked_markers[marker_id]['corners'] = corners[i]
+                            tracked_markers[marker_id]['last_known_corners'] = corners[i]
+                            tracked_markers[marker_id]['position_history'].append(current_center)
+                            tracked_markers[marker_id]['last_valid_position'] = current_center
+                            
+                            # Calculate moving average if we have enough samples
+                            if len(tracked_markers[marker_id]['position_history']) >= MOVING_AVG_WINDOW:
+                                avg_position = np.mean(tracked_markers[marker_id]['position_history'], axis=0)
+                                tracked_markers[marker_id]['smoothed_position'] = avg_position
+                        else:
+                            # Reject this detection as too far away
+                            print(f"Marker {marker_id} moved too far ({distance:.2f} pixels), using last valid position")
+                            corners = list(corners)  # Convert to a mutable list
+                            corners[i] = tracked_markers[marker_id]['last_known_corners']
+                            corners = tuple(corners)  # Convert back to a tuple
 
+        # Handle markers that weren't detected in this frame
         for marker_id in list(tracked_markers.keys()):
             if marker_id not in detected_ids:
-                tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
+                if tracked_markers[marker_id]['smoothed_position'] is not None:
+                    # Use smoothed position if available
+                    pass  # We'll keep using the last known corners
+                else:
+                    # Fall back to last known corners
+                    tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
 
         return corners, ids, detected_ids
     except Exception as e:
