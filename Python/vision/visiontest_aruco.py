@@ -83,10 +83,6 @@ def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, fr
 
     return marker_locations, circle_center
 
-
-import csv
-import os
-
 def save_to_csv(data, output_csv):
     header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
 
@@ -103,9 +99,9 @@ def save_to_csv(data, output_csv):
 
 
 def main():
-    video_path = 'aurco_video.mp4'
-    output_path = os.path.join(os.path.dirname(__file__), 'dataprocessing/output_warped_video.mp4')
-    output_csv = os.path.join(os.path.dirname(__file__), 'dataprocessing/marker_positions.csv')
+    video_path = 'input_files/aurco_video.mp4'
+    output_path = os.path.join(os.path.dirname(__file__), 'output_files/output_warped_video.mp4')
+    output_csv = os.path.join(os.path.dirname(__file__), 'output_files/marker_positions.csv')
 
     frame_width, frame_height = 400, 400
     real_world_distance = 1
@@ -120,7 +116,8 @@ def main():
     tracked_markers = {}
 
     frame_index = 0
-    csv_data = []  # Store data for CSV
+    csv_data = []  
+    last_circle_center = None  # Store last known circle position
 
     while True:
         ret, frame = cap.read()
@@ -135,26 +132,33 @@ def main():
             marker_locations, circle_center = calculate_marker_locations(
                 other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
             )
+
+            # Keep track of the last detected circle center
+            if circle_center is not None:
+                last_circle_center = circle_center
+
             out.write(warped_image)
 
-            # Save marker positions & distances
-            for marker_id, (x, y) in marker_locations.items():
-                if circle_center is not None:
-                    distance = np.linalg.norm(np.array(circle_center) - np.array([y * frame_width, x * frame_height]))
+            # Only track marker ID 11 in the CSV file
+            if 11 in marker_locations:
+                x, y = marker_locations[11]
+                if last_circle_center is not None:
+                    distance = np.linalg.norm(np.array(last_circle_center) - np.array([x * frame_width, y * frame_height]))
                 else:
-                    distance = None
-                csv_data.append((frame_index, marker_id, x, y, distance))
+                    distance = None  # No valid circle center detected yet
+                
+                csv_data.append((frame_index, 11, x, y, distance))
 
         frame_index += 1
 
     cap.release()
     out.release()
 
-    # Save data to CSV
     save_to_csv(csv_data, output_csv)
 
     print(f"Warped video saved to {output_path}")
     print("Processing complete.")
+
 
 if __name__ == "__main__":
     main()
