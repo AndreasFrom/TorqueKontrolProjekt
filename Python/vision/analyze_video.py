@@ -9,7 +9,7 @@ from collections import deque
 # Constants
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
-MAX_DISTANCE_THRESHOLD = 200  # Maximum allowed distance between consecutive points in meters
+MAX_DISTANCE_THRESHOLD = 200  # Maximum allowed distance between consecutive points in pixels
 MOVING_AVG_WINDOW = 10  # Number of frames to average over
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
