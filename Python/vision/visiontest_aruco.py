@@ -3,6 +3,8 @@ import numpy as np
 import os
 import csv
 
+CAR_MARKER = 11  
+
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -76,7 +78,7 @@ def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, fr
         cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
-        if other_ids[i] == 11:
+        if other_ids[i] == CAR_MARKER:
             radius_pixels = int((radius_meters / real_world_distance) * frame_height)
             cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
             circle_center = transformed_center
@@ -139,15 +141,15 @@ def main():
 
             out.write(warped_image)
 
-            # Only track marker ID 11 in the CSV file
-            if 11 in marker_locations:
-                x, y = marker_locations[11]
+            # Only track marker ID CAR_MARKER in the CSV file
+            if CAR_MARKER in marker_locations:
+                x, y = marker_locations[CAR_MARKER]
                 if last_circle_center is not None:
                     distance = np.linalg.norm(np.array(last_circle_center) - np.array([x * frame_width, y * frame_height]))
                 else:
                     distance = None  # No valid circle center detected yet
                 
-                csv_data.append((frame_index, 11, x, y, distance))
+                csv_data.append((frame_index, CAR_MARKER, x, y, distance))
 
         frame_index += 1
 
