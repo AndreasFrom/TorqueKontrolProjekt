@@ -11,7 +11,6 @@ CAR_MARKER = 10
 FRAME_WIDTH, FRAME_HEIGHT = 400, 400
 
 def rotate(x, y):
-    """Rotate point 90 degrees counter-clockwise"""
     return y, -x
 
 def main():
@@ -37,7 +36,7 @@ def main():
     
     # Create figure with subplots
     plt.figure(figsize=(15, 8))
-    plt.suptitle('Car Tracking Visualization (Rotated 90° CCW)', fontsize=16)
+    plt.suptitle('Car Tracking Visualization', fontsize=16)
     
     # Video display
     ax1 = plt.subplot2grid((2, 3), (0, 0), rowspan=2)

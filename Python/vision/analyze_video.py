@@ -3,159 +3,228 @@ import numpy as np
 import os
 import csv
 from tqdm import tqdm
+import sys
 
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
-    cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened():
-        print("Error: Could not open video.")
-        exit()
-    fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-    out = cv2.VideoWriter(output_path_video, fourcc, fps, (frame_width, frame_height))
-    return cap, out
+    try:
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise IOError(f"Could not open video file: {video_path}")
+        
+        # Try to read the first frame to verify the video can be processed
+        ret, _ = cap.read()
+        if not ret:
+            raise ValueError("Video file appears to be empty or corrupted")
+        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)  # Reset to first frame
+        
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(output_path_video, fourcc, fps, (frame_width, frame_height))
+        if not out.isOpened():
+            raise IOError(f"Could not create output video file: {output_path_video}")
+            
+        return cap, out
+    except Exception as e:
+        print(f"Error during video initialization: {str(e)}")
+        sys.exit(1)
 
 def detect_markers(detector, frame, valid_ids, tracked_markers):
-    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    corners, ids, _ = detector.detectMarkers(gray)
-    detected_ids = set(ids.flatten()) if ids is not None else set()
+    try:
+        gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        corners, ids, _ = detector.detectMarkers(gray)
+        detected_ids = set(ids.flatten()) if ids is not None else set()
 
-    if ids is not None:
-        for i, marker_id in enumerate(ids.flatten()):
-            if marker_id in valid_ids:
-                if marker_id not in tracked_markers:
-                    tracked_markers[marker_id] = {'corners': corners[i], 'last_known_corners': corners[i]}
-                else:
-                    tracked_markers[marker_id]['corners'] = corners[i]
-                    tracked_markers[marker_id]['last_known_corners'] = corners[i]
+        if ids is not None:
+            for i, marker_id in enumerate(ids.flatten()):
+                if marker_id in valid_ids:
+                    if marker_id not in tracked_markers:
+                        tracked_markers[marker_id] = {'corners': corners[i], 'last_known_corners': corners[i]}
+                    else:
+                        tracked_markers[marker_id]['corners'] = corners[i]
+                        tracked_markers[marker_id]['last_known_corners'] = corners[i]
 
-    for marker_id in list(tracked_markers.keys()):
-        if marker_id not in detected_ids:
-            tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
+        for marker_id in list(tracked_markers.keys()):
+            if marker_id not in detected_ids:
+                tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
 
-    return corners, ids, detected_ids
+        return corners, ids, detected_ids
+    except Exception as e:
+        print(f"Error during marker detection: {str(e)}")
+        return None, None, set()
 
 def process_corners(tracked_markers, corner_ids):
-    selected_corners = []
-    selected_ids = []
-    other_corners = []
-    other_ids = []
+    try:
+        selected_corners = []
+        selected_ids = []
+        other_corners = []
+        other_ids = []
 
-    for marker_id, marker_data in tracked_markers.items():
-        if marker_id in corner_ids:
-            selected_corners.append(marker_data['corners'][0])
-            selected_ids.append(marker_id)
-        else:
-            other_corners.append(marker_data['corners'][0])
-            other_ids.append(marker_id)
+        for marker_id, marker_data in tracked_markers.items():
+            if marker_id in corner_ids:
+                selected_corners.append(marker_data['corners'][0])
+                selected_ids.append(marker_id)
+            else:
+                other_corners.append(marker_data['corners'][0])
+                other_ids.append(marker_id)
 
-    return selected_corners, selected_ids, other_corners, other_ids
+        return selected_corners, selected_ids, other_corners, other_ids
+    except Exception as e:
+        print(f"Error during corner processing: {str(e)}")
+        return [], [], [], []
 
 def warp_frame(frame, selected_corners, frame_width, frame_height):
-    points = np.array([corner for corner in selected_corners], dtype=np.float32)
-    sorted_points = points[np.argsort(points[:, 0, 0])]
-    left_points = sorted_points[:2][np.argsort(sorted_points[:2][:, 0, 1])]
-    right_points = sorted_points[2:][np.argsort(sorted_points[2:][:, 0, 1])]
-    top_left, bottom_left = left_points
-    top_right, bottom_right = right_points
-    ordered_points = np.array([top_left[0], top_right[0], bottom_right[0], bottom_left[0]], dtype=np.float32)
-    dst_points = np.array([[0, 0], [frame_width-1, 0], [frame_width-1, frame_height-1], [0, frame_height-1]], dtype=np.float32)
-    matrix = cv2.getPerspectiveTransform(ordered_points, dst_points)
-    warped_image = cv2.warpPerspective(frame, matrix, (frame_width, frame_height))
-    return warped_image, matrix
+    try:
+        if len(selected_corners) != 4:
+            raise ValueError("Exactly 4 corners are required for warping")
+            
+        points = np.array([corner for corner in selected_corners], dtype=np.float32)
+        sorted_points = points[np.argsort(points[:, 0, 0])]
+        left_points = sorted_points[:2][np.argsort(sorted_points[:2][:, 0, 1])]
+        right_points = sorted_points[2:][np.argsort(sorted_points[2:][:, 0, 1])]
+        top_left, bottom_left = left_points
+        top_right, bottom_right = right_points
+        ordered_points = np.array([top_left[0], top_right[0], bottom_right[0], bottom_left[0]], dtype=np.float32)
+        dst_points = np.array([[0, 0], [frame_width-1, 0], [frame_width-1, frame_height-1], [0, frame_height-1]], dtype=np.float32)
+        matrix = cv2.getPerspectiveTransform(ordered_points, dst_points)
+        warped_image = cv2.warpPerspective(frame, matrix, (frame_width, frame_height))
+        return warped_image, matrix
+    except Exception as e:
+        print(f"Error during frame warping: {str(e)}")
+        return None, None
 
 def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
-    marker_locations = {}
-    circle_center = None
+    try:
+        marker_locations = {}
+        circle_center = None
 
-    for i in range(len(other_ids)):
-        marker_point = other_corners[i][0].reshape(1, 1, -1)
-        transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
-        
-        # Calculate real-world coordinates
-        x_meters = (transformed_center[0] / frame_width) * real_world_distance
-        y_meters = (transformed_center[1] / frame_height) * real_world_distance
-        marker_locations[other_ids[i]] = (x_meters, y_meters)
+        for i in range(len(other_ids)):
+            marker_point = other_corners[i][0].reshape(1, 1, -1)
+            transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
+            
+            # Calculate real-world coordinates
+            x_meters = (transformed_center[0] / frame_width) * real_world_distance
+            y_meters = (transformed_center[1] / frame_height) * real_world_distance
+            marker_locations[other_ids[i]] = (x_meters, y_meters)
 
-        text = f"ID {other_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
-        cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+            text = f"ID {other_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
+            cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
-        if other_ids[i] == CIRCLE_MARKER:
-            radius_pixels = int((radius_meters / real_world_distance) * frame_height)
-            cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
-            circle_center = (x_meters, y_meters)
+            if other_ids[i] == CIRCLE_MARKER:
+                radius_pixels = int((radius_meters / real_world_distance) * frame_height)
+                cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
+                circle_center = (x_meters, y_meters)
 
-    return marker_locations, circle_center
+        return marker_locations, circle_center
+    except Exception as e:
+        print(f"Error during marker location calculation: {str(e)}")
+        return {}, None
 
 def save_to_csv(data, output_csv):
-    header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
-    os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-    with open(output_csv, mode="w", newline="") as file:
-        writer = csv.writer(file)
-        writer.writerow(header)
-        writer.writerows(data)
-    print(f"CSV file saved at {output_csv}")
+    try:
+        os.makedirs(os.path.dirname(output_csv), exist_ok=True)
+        header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
+        with open(output_csv, mode="w", newline="") as file:
+            writer = csv.writer(file)
+            writer.writerow(header)
+            writer.writerows(data)
+        print(f"Success: CSV file saved at {output_csv}")
+    except Exception as e:
+        print(f"Error saving CSV file: {str(e)}")
 
 def main():
-    video_path = 'input_files/aurco_video.mp4'
-    output_path = os.path.join(os.path.dirname(__file__), 'output_files/output_warped_video.mp4')
-    output_csv = os.path.join(os.path.dirname(__file__), 'output_files/marker_positions.csv')
+    try:
+        # Create output directory if it doesn't exist
+        output_dir = os.path.join(os.path.dirname(__file__), 'output_files')
+        os.makedirs(output_dir, exist_ok=True)
+        
+        video_path = 'input_files/IMG_4388.mov'
+        output_path = os.path.join(output_dir, 'output_warped_video.mp4')
+        output_csv = os.path.join(output_dir, 'marker_positions.csv')
 
-    frame_width, frame_height = 400, 400
-    real_world_distance = 1  # Distance between corner markers in meters
-    radius_meters = 0.3      # Radius of the circle in meters
-    corner_ids = [6, 7, 8, 9]
-    valid_ids = set(range(6, 12))  # Valid marker IDs (6-11)
+        # Check if input file exists
+        if not os.path.exists(video_path):
+            raise FileNotFoundError(f"Input video file not found: {video_path}")
 
-    cap, out = initialize_video(video_path, output_path, frame_width, frame_height, int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        frame_width, frame_height = 400, 400
+        real_world_distance = 1.975  # Distance between corner markers in meters
+        radius_meters = 0.5      # Radius of the circle in meters
+        corner_ids = [6, 7, 8, 9]
+        valid_ids = set(range(6, 12))  # Valid marker IDs (6-11)
 
-    aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
-    parameters = cv2.aruco.DetectorParameters()
-    detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
-    tracked_markers = {}
+        cap = cv2.VideoCapture(video_path)
+        if not cap.isOpened():
+            raise IOError(f"Could not open video file: {video_path}")
+            
+        fps = int(cap.get(cv2.CAP_PROP_FPS))
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        cap.release()
 
-    frame_index = 0
-    csv_data = []  
-    last_circle_center = None  
+        cap, out = initialize_video(video_path, output_path, frame_width, frame_height, fps)
 
-    with tqdm(total=total_frames, desc="Processing Video", unit="frame") as pbar:
-        while True:
-            ret, frame = cap.read()
-            if not ret:
-                break
+        aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
+        parameters = cv2.aruco.DetectorParameters()
+        detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
+        tracked_markers = {}
 
-            corners, ids, detected_ids = detect_markers(detector, frame, valid_ids, tracked_markers)
-            selected_corners, selected_ids, other_corners, other_ids = process_corners(tracked_markers, corner_ids)
+        frame_index = 0
+        csv_data = []  
+        last_circle_center = None  
+        missing_corners_count = 0
+        total_processed_frames = 0
 
-            if len(selected_corners) == 4:
-                warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
-                marker_locations, circle_center = calculate_marker_locations(
-                    other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
-                )
+        with tqdm(total=total_frames, desc="Processing Video", unit="frame") as pbar:
+            while True:
+                ret, frame = cap.read()
+                if not ret:
+                    break
 
-                if circle_center is not None:
-                    last_circle_center = circle_center
+                corners, ids, detected_ids = detect_markers(detector, frame, valid_ids, tracked_markers)
+                selected_corners, selected_ids, other_corners, other_ids = process_corners(tracked_markers, corner_ids)
 
-                out.write(warped_image)
+                if len(selected_corners) == 4:
+                    warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
+                    if warped_image is not None:
+                        marker_locations, circle_center = calculate_marker_locations(
+                            other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
+                        )
 
-                if CAR_MARKER in marker_locations and last_circle_center is not None:
-                    x, y = marker_locations[CAR_MARKER]
-                    # Calculate distance between car and circle center in meters
-                    distance = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
-                    csv_data.append((frame_index, CAR_MARKER, x, y, distance))
+                        if circle_center is not None:
+                            last_circle_center = circle_center
 
-            frame_index += 1
-            pbar.update(1)
+                        out.write(warped_image)
+                        total_processed_frames += 1
 
-    cap.release()
-    out.release()
-    save_to_csv(csv_data, output_csv)
+                        if CAR_MARKER in marker_locations and last_circle_center is not None:
+                            x, y = marker_locations[CAR_MARKER]
+                            distance = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
+                            csv_data.append((frame_index, CAR_MARKER, x, y, distance))
+                else:
+                    missing_corners_count += 1
 
-    print(f"Warped video saved to {output_path}")
-    print("Processing complete.")
+                frame_index += 1
+                pbar.update(1)
+
+        cap.release()
+        out.release()
+
+        if total_processed_frames == 0:
+            raise RuntimeError("No frames were successfully processed. Check if markers are visible and configuration is correct.")
+            
+        if missing_corners_count > 0:
+            print(f"Warning: Could not detect all 4 corner markers in {missing_corners_count} frames")
+
+        save_to_csv(csv_data, output_csv)
+
+        print(f"\nSuccess: Warped video saved to {output_path}")
+        print(f"Processed {total_processed_frames}/{total_frames} frames successfully")
+        print(f"Processing complete. Results saved in {output_dir}")
+
+    except Exception as e:
+        print(f"\nError: {str(e)}")
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
