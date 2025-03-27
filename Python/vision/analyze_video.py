@@ -4,7 +4,8 @@ import os
 import csv
 from tqdm import tqdm
 
-CAR_MARKER = 11  
+CIRCLE_MARKER = 11  # Marks the center of the circle
+CAR_MARKER = 10     # Marks the car position
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
     cap = cv2.VideoCapture(video_path)
@@ -71,35 +72,31 @@ def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, fr
     for i in range(len(other_ids)):
         marker_point = other_corners[i][0].reshape(1, 1, -1)
         transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
-        distance_x = (transformed_center[1] / frame_height) * real_world_distance
-        distance_y = (transformed_center[0] / frame_width) * real_world_distance
-        marker_locations[other_ids[i]] = (distance_x, distance_y)
+        
+        # Calculate real-world coordinates
+        x_meters = (transformed_center[0] / frame_width) * real_world_distance
+        y_meters = (transformed_center[1] / frame_height) * real_world_distance
+        marker_locations[other_ids[i]] = (x_meters, y_meters)
 
-        text = f"ID {other_ids[i]}: ({distance_x:.2f}m, {distance_y:.2f}m)"
+        text = f"ID {other_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
         cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
-        if other_ids[i] == CAR_MARKER:
+        if other_ids[i] == CIRCLE_MARKER:
             radius_pixels = int((radius_meters / real_world_distance) * frame_height)
             cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
-            circle_center = transformed_center
+            circle_center = (x_meters, y_meters)
 
     return marker_locations, circle_center
 
 def save_to_csv(data, output_csv):
     header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
-
-    # Ensure directory exists
     os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-
-    # Write data to CSV file
     with open(output_csv, mode="w", newline="") as file:
         writer = csv.writer(file)
         writer.writerow(header)
         writer.writerows(data)
-
     print(f"CSV file saved at {output_csv}")
-
 
 def main():
     video_path = 'input_files/aurco_video.mp4'
@@ -107,13 +104,13 @@ def main():
     output_csv = os.path.join(os.path.dirname(__file__), 'output_files/marker_positions.csv')
 
     frame_width, frame_height = 400, 400
-    real_world_distance = 1
-    radius_meters = 0.1
+    real_world_distance = 1  # Distance between corner markers in meters
+    radius_meters = 0.3      # Radius of the circle in meters
     corner_ids = [6, 7, 8, 9]
-    valid_ids = set(range(6, 12))
+    valid_ids = set(range(6, 12))  # Valid marker IDs (6-11)
 
     cap, out = initialize_video(video_path, output_path, frame_width, frame_height, int(cv2.VideoCapture(video_path).get(cv2.CAP_PROP_FPS)))
-    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))  # Get the total number of frames
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 
     aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
     parameters = cv2.aruco.DetectorParameters()
@@ -124,7 +121,6 @@ def main():
     csv_data = []  
     last_circle_center = None  
 
-    # Wrap the loop with tqdm for progress tracking
     with tqdm(total=total_frames, desc="Processing Video", unit="frame") as pbar:
         while True:
             ret, frame = cap.read()
@@ -145,17 +141,14 @@ def main():
 
                 out.write(warped_image)
 
-                if CAR_MARKER in marker_locations:
+                if CAR_MARKER in marker_locations and last_circle_center is not None:
                     x, y = marker_locations[CAR_MARKER]
-                    if last_circle_center is not None:
-                        distance = np.linalg.norm(np.array(last_circle_center) - np.array([x * frame_width, y * frame_height]))
-                    else:
-                        distance = None  
-
+                    # Calculate distance between car and circle center in meters
+                    distance = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
                     csv_data.append((frame_index, CAR_MARKER, x, y, distance))
 
             frame_index += 1
-            pbar.update(1)  # Update the progress bar by 1 frame
+            pbar.update(1)
 
     cap.release()
     out.release()
