@@ -26,7 +26,7 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 
 // Variables
 double currentRPM = 1;
-double currentTorque = 1; 
+double currentTorque = 0; 
 double currentVelocity = 1;
 double motorCurrent = 1;
 int pwmValue = 0;
@@ -35,7 +35,7 @@ bool newPIDGainsAvailable = false; // Flag to indicate new PID gains are availab
 int step = 0;
 
 // Objects
-MotorPID pid(1, 10, 0.01, 300, SAMPLE_TIME); // Example gains and setpoint
+MotorPID pid(2, 0.01, 1, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
 MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 5);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
@@ -54,7 +54,7 @@ void controlLoop() {
 
     // Torque control
     motorCurrent = motorSensor.getFilteredCurrent(motorSensor.getMotorCurrent());
-    currentTorque = 0.0981 * motorCurrent;
+    currentTorque = 0.981 * motorCurrent;
 
     // Compute PID based on mode
     double output = 0;
@@ -81,7 +81,10 @@ void controlLoop() {
 
 
     // Debug print current
-    Serial.println(motorCurrent);
+    Serial.print("PWM: ");
+    Serial.print(pwmValue);
+    Serial.print(" Torque: ");
+    Serial.println(currentTorque);
 }
 
 void timerISR() {
@@ -104,8 +107,8 @@ void setup() {
     // Initialize I2C Slave
     i2cSlave.begin();
 
-    i2cSlave.setCtrlMode(2); // Temp
-    i2cSlave.setSetpoint(300); // Temp
+    i2cSlave.setCtrlMode(1); // Temp
+    i2cSlave.setSetpoint(0.5); // Temp
 }
 
 void loop() {
