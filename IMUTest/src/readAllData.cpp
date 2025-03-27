@@ -91,9 +91,9 @@ void loop() {
     String(filteredAccelY) + "," +
     String(filteredGyroZ);
 
-  Serial.println(data);
+  Serial.print(data);
 
 
   Serial.println("");
-  delay(500);
+  delay(100);
 }
