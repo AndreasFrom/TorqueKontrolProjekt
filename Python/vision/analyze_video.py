@@ -181,7 +181,7 @@ def main():
         output_dir = os.path.join(os.path.dirname(__file__), 'output_files')
         os.makedirs(output_dir, exist_ok=True)
         
-        video_path = 'input_files/IMG_4388.mov'
+        video_path = 'input_files/IMG_4387.mov'
         output_path = os.path.join(output_dir, 'output_warped_video.mp4')
         output_csv = os.path.join(output_dir, 'marker_positions.csv')
 
