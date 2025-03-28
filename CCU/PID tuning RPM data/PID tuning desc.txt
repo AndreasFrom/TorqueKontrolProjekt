@@ -14,14 +14,16 @@ Ultimate gain (Kp) Ku = 2.2
 Aflæser periode til 5 samples, dvs. 50ms
 Tu er 50ms.
 
-G:
+G: (Classic PID)
 Kp = 0.6 * Ku = 1.32
 Ki = 1.2 * (Ku / Tu) = 52.8
 Kd = 0.075 * Ku * Tu = 0.008
 
-Den var lidt langsom til at komme på plads, så vi prøver en hurtigere en.
-Der er fejl i koden, så vi kan slet ikke sende så store værdier til MU
+Wow den er flot.
 
+H: (Some overshoot)
 Kp = 0.33 * Ku = 0.726
 Ki = 0.66 * (Ku / Tu) = 29.04
 Kd = 0.11 * Ku * Tu = 0.012
+
+Den er også fin
