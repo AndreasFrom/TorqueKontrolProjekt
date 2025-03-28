@@ -76,11 +76,19 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
     switch(Wire.read()){
         case CMD_SetPIDParam :
             Serial.println("CMD_SetPIDParam");
-            if (bytes == 5){
+            if (bytes == 8){
                 instance->_mode = Wire.read();
-                instance->_kp = Wire.read() / 10.0;
-                instance->_ki = Wire.read() / 10.0;
-                instance->_kd = Wire.read() / 10.0;
+                instance->_kp = Wire.read();
+                instance->_kp = (Wire.read() << 8) | instance->_kp;
+                instance->_ki = Wire.read();
+                instance->_ki = (Wire.read() << 8) | instance->_ki;
+                instance->_kd = Wire.read();
+                instance->_kd = (Wire.read() << 8) | instance->_kd;
+
+                //Scale values
+                instance->_kp /= SCALE_FACTOR_KP
+                instance->_ki /= SCALE_FACTOR_KI;
+                instance->_kd /= SCALE_FACTOR_KD;
 
                 instance->newPIDGainsAvailable = true; // Set the flag to indicate new gains are available
                 

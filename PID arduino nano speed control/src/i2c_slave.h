@@ -12,6 +12,9 @@
 #define SCALE_FACTOR_TORQUE 510.0
 #define SCALE_FACTOR_RPM 0.25
 #define SCALE_FACTOR_CURRENT 57.0
+#define SCALE_FACTOR_KP 1000
+#define SCALE_FACTOR_KI 800
+#define SCALE_FACTOR_KD 10000
 
 #include <Wire.h>
 #include <Arduino.h>
