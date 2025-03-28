@@ -1,0 +1,10 @@
+PID tuning
+Set 100, 
+A Kp5, Oscilaltes fast
+B Kp4, Oscilaltes slower
+C Kp3, A little slower
+D Kp2.5, Does not oscillate very much
+E Kp2, No oscillations
+
+F Kp 2.2 Good
+
