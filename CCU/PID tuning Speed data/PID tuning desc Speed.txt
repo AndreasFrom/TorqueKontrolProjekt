@@ -1,14 +1,31 @@
 Set 0.5m/saved mode 0
 A: 
-Kp 600
-Den rasler, lidt oscillationer
+Kp 500
+Lyder meget fint, stabil
 
-B: 
-500
-Det lyder fint
-ingen oscillationer
+B:
+Kp 550
 
-C: 
-550
+C:
+Kp 525
 
-Vi kører med 600
+
+
+Vi kører med 550
+
+Kp =  is good.
+Ultimate gain (Kp) Ku = 550
+
+Aflæser periode til 4 samples, dvs. 40ms
+Tu er 40ms.
+
+D: (Classic PID)
+Kp = 0.6 * Ku = 330
+Ki = 1.2 * (Ku / Tu) = 16500 
+Kd = 0.075 * Ku * Tu = 1.65
+Forfærdeligt
+
+E: (No overshoot)
+Kp = 0.2 * Ku = 110
+Ki = 0.4 * (Ku / Tu) = 5500
+Kd = 0.066 * Ku * Tu = 1.452
