@@ -76,19 +76,21 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
     switch(Wire.read()){
         case CMD_SetPIDParam :
             Serial.println("CMD_SetPIDParam");
-            if (bytes == 8){
+            if (bytes == 11){
                 instance->_mode = Wire.read();
-                uint8_t msb_kp = Wire.read();
+                uint32_t msb_kp = Wire.read();
+                uint16_t mmb_kp = Wire.read();
                 uint8_t lsb_kp = Wire.read();
-                uint8_t msb_ki = Wire.read();
+                uint32_t msb_ki = Wire.read();
+                uint16_t mmb_ki = Wire.read();
                 uint8_t lsb_ki = Wire.read();
-                uint8_t msb_kd = Wire.read();
+                uint32_t msb_kd = Wire.read();
+                uint16_t mmb_kd = Wire.read();
                 uint8_t lsb_kd = Wire.read();                
                 
-                instance->_kp = static_cast<double>(static_cast<uint16_t>((msb_kp << 8) | lsb_kp)) / SCALE_FACTOR_KP;
-                instance->_ki = static_cast<double>(static_cast<uint16_t>((msb_ki << 8) | lsb_ki)) / SCALE_FACTOR_KI;
-                instance->_kd = static_cast<double>(static_cast<uint16_t>((msb_kd << 8) | lsb_kd)) / SCALE_FACTOR_KD;
-                
+                instance->_kp = static_cast<double>(static_cast<uint32_t>((msb_kp << 16) | (mmb_kp << 8) | lsb_kp)) / SCALE_FACTOR_KP;
+                instance->_ki = static_cast<double>(static_cast<uint32_t>((msb_ki << 16) | (mmb_ki << 8) | lsb_ki)) / SCALE_FACTOR_KI;
+                instance->_kd = static_cast<double>(static_cast<uint32_t>((msb_kd << 16) | (mmb_kd << 8) | lsb_kd)) / SCALE_FACTOR_KD;
 
                 instance->newPIDGainsAvailable = true; // Set the flag to indicate new gains are available
                 
@@ -111,7 +113,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 switch (instance->_mode)    
                 {
                 case 0:
-                instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
+                    instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
                     break;
                 case 1:
                     instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque

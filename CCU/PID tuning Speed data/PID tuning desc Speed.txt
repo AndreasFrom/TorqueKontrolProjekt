@@ -1,0 +1,14 @@
+Set 0.5m/saved mode 0
+A: 
+Kp 600
+Den rasler, lidt oscillationer
+
+B: 
+500
+Det lyder fint
+ingen oscillationer
+
+C: 
+550
+
+Vi kører med 600

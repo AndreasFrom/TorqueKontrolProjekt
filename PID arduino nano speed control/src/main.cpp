@@ -27,7 +27,7 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 // Variables
 double currentRPM = 1;
 double currentTorque = 1; 
-double currentVelocity = 1;
+double currentVelocity = 0.01;
 double motorCurrent = 1;
 int pwmValue = 0;
 volatile bool controlFlag = false; // Flag to indicate when to run the control logic
@@ -80,19 +80,19 @@ void controlLoop() {
     analogWrite(PWM_PIN, pwmValue);
 
 
-/*     unsigned long timestamp = millis(); 
+    //unsigned long timestamp = millis(); 
 
-    Serial.print(timestamp); 
-    Serial.print(",");
-    Serial.print(motorSensor.getTimeBetweenSensors());
-    Serial.print(",");
-    Serial.print(currentRPM);
-    Serial.print(",");
-    Serial.print(currentVelocity);
-    Serial.print(",");
-    Serial.println(pwmValue);
-    Serial.print(",");
-    Serial.println(motorCurrent); */
+    //Serial.print(timestamp); 
+    //Serial.print(",");
+    //Serial.print(motorSensor.getTimeBetweenSensors());
+    //Serial.print("RPM ");
+    //Serial.print(currentRPM);
+    //Serial.print(",");
+    //Serial.println(currentVelocity);
+    //Serial.print(",");
+    //Serial.println(pwmValue);
+    //Serial.print(",");
+    //Serial.println(motorCurrent);
 }
 
 void timerISR() {
@@ -128,7 +128,7 @@ void loop() {
 
     // Update PID gains only if new values are available
     if (i2cSlave.newPIDGainsAvailable) {
-        pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
+        pid.setGains(i2cSlave.getCtrlMode(),i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
         i2cSlave.newPIDGainsAvailable = false; // Reset the flag
     }
 }
