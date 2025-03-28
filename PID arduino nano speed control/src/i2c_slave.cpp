@@ -78,28 +78,28 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
             Serial.println("CMD_SetPIDParam");
             if (bytes == 8){
                 instance->_mode = Wire.read();
-                instance->_kp = Wire.read();
-                instance->_kp = (Wire.read() << 8) | instance->_kp;
-                instance->_ki = Wire.read();
-                instance->_ki = (Wire.read() << 8) | instance->_ki;
-                instance->_kd = Wire.read();
-                instance->_kd = (Wire.read() << 8) | instance->_kd;
-
-                //Scale values
-                instance->_kp /= SCALE_FACTOR_KP
-                instance->_ki /= SCALE_FACTOR_KI;
-                instance->_kd /= SCALE_FACTOR_KD;
+                uint8_t msb_kp = Wire.read();
+                uint8_t lsb_kp = Wire.read();
+                uint8_t msb_ki = Wire.read();
+                uint8_t lsb_ki = Wire.read();
+                uint8_t msb_kd = Wire.read();
+                uint8_t lsb_kd = Wire.read();                
+                
+                instance->_kp = static_cast<double>(static_cast<uint16_t>((msb_kp << 8) | lsb_kp)) / SCALE_FACTOR_KP;
+                instance->_ki = static_cast<double>(static_cast<uint16_t>((msb_ki << 8) | lsb_ki)) / SCALE_FACTOR_KI;
+                instance->_kd = static_cast<double>(static_cast<uint16_t>((msb_kd << 8) | lsb_kd)) / SCALE_FACTOR_KD;
+                
 
                 instance->newPIDGainsAvailable = true; // Set the flag to indicate new gains are available
                 
                 Serial.print("Received: Mode = ");
                 Serial.print(instance->_mode);
                 Serial.print(", Kp = ");
-                Serial.print(instance->_kp);
+                Serial.print(instance->_kp,3);
                 Serial.print(", Ki = ");
-                Serial.print(instance->_ki);
+                Serial.print(instance->_ki,3);
                 Serial.print(", Kd = ");
-                Serial.println(instance->_kd);
+                Serial.println(instance->_kd,4);
                 break;
             }
             Serial.print("Missing I2C data");
