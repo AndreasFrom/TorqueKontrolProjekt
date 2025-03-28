@@ -49,7 +49,8 @@ void controlLoop() {
         if (rawRPM > 2000) {rawRPM = 0;}
 
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
-        currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60; // Calculate velocity from RPM
+        //currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60;
+        currentVelocity = (currentRPM * PI * WHEEL_DIA * 100) / 60; // Calculate velocity from RPM, 100 for scaling for better PID control
     }
 
     // Torque control

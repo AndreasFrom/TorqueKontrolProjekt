@@ -26,6 +26,29 @@ Kd = 0.075 * Ku * Tu = 1.65
 Forfærdeligt
 
 E: (No overshoot)
+
 Kp = 0.2 * Ku = 110
 Ki = 0.4 * (Ku / Tu) = 5500
 Kd = 0.066 * Ku * Tu = 1.452
+
+
+
+Skalerer indeni MU med 100 på setpoint
+L: 
+Kp 5
+Der er lidt oscillation
+
+M:
+Kp 4.5
+
+Kp = 5 is good.
+Ultimate gain (Kp) Ku = 5.0
+
+Aflæser periode til 4 samples, dvs. 40ms
+Tu er 40ms.
+
+N: (Classic PID)
+Kp = 0.6 * Ku = 3
+Ki = 1.2 * (Ku / Tu) =  150
+Kd = 0.075 * Ku * Tu = 0.015
+Forfærdeligt
