@@ -37,7 +37,7 @@ float kp = 1.0;
 float ki = 10.0;
 float kd = 0.01;
 uint8_t mode = 2;                      
-float setpoint = 2.0;                  
+float setpoint = 0;                  
 float setpoint_radius = 2.0; 
 
 int setpoint0 = 100; // left front
@@ -155,10 +155,10 @@ void processClientMessage(String message) {
         client.println("ACK:START");
         logging = true;
         // Set all setpoints
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   setpoint0);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint1);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   setpoint);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);
         Serial.println("Logging started!");
 
     } else if (message == "STOP") {
