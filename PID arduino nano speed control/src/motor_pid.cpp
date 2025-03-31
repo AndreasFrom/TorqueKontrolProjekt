@@ -27,7 +27,7 @@ void MotorPID::setSetpoint(double setpoint) {
 double MotorPID::compute(double current_value) {
     double error = setpoint_ - current_value;
     integral_ += error * (sampleTime_);
-    //integral_ = constrain(integral_, -50, 50);  // Prevent integral windup
+    integral_ = constrain(integral_, -50, 50);  // Prevent integral windup
     double derivative = (error - prev_error_) / (sampleTime_);
     prev_error_ = error;
 
