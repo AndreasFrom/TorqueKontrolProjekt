@@ -113,8 +113,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 switch (instance->_mode)    
                 {
                 case 0:
-                    //instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for Velocity
-                    instance->_setpoint = (Wire.read() / SCALE_FACTOR_SPEED) * 100;  // Scale for Velocity, 100 multiplier for better scaling
+                    instance->_setpoint = (Wire.read() / SCALE_FACTOR_SPEED) * (60 / (WHEEL_DIA * PI));  // Scale for Velocity
                     break;
                 case 1:
                     instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque
@@ -147,9 +146,8 @@ void I2CSlave::requestEvent() { // Send data to master
         // Return Setpoint and measured Speed/Torque/RPM
         switch (instance->_mode){
             case 0 : // Speed
-                Wire.write((byte)((instance->_setpoint / 100) * SCALE_FACTOR_SPEED));  
-                //Wire.write((byte)(instance->_currentVelocity * SCALE_FACTOR_SPEED));
-                Wire.write((byte)((instance->_currentVelocity / 100) * SCALE_FACTOR_SPEED));
+                Wire.write((byte)((instance->_setpoint * SCALE_FACTOR_SPEED) * ((PI * WHEEL_DIA)/60))); // Scale to velocity again
+                Wire.write((byte)(instance->_currentVelocity * SCALE_FACTOR_SPEED));
                 break;
 
             case 1 : // Torque

@@ -49,8 +49,7 @@ void controlLoop() {
         if (rawRPM > 2000) {rawRPM = 0;}
 
         currentRPM = motorSensor.getFilteredRPM(rawRPM);
-        //currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60;
-        currentVelocity = (currentRPM * PI * WHEEL_DIA * 100) / 60; // Calculate velocity from RPM, 100 for scaling for better PID control
+        currentVelocity = (currentRPM * PI * WHEEL_DIA) / 60;
     }
 
     // Torque control
@@ -61,7 +60,7 @@ void controlLoop() {
     double output = 0;
     switch (i2cSlave.getCtrlMode()) {
         case 0 : // Speed control
-            output = pid.compute(currentVelocity);
+            output = pid.compute(currentRPM); //Changed to use RPM internally
             break;
 
         case 1 : // Torque control

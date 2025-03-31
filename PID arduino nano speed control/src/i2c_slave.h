@@ -16,6 +16,9 @@
 #define SCALE_FACTOR_KI 800
 #define SCALE_FACTOR_KD 10000
 
+#define WHEEL_DIA 0.068 //68mm
+#define PI 3.1415926535897932384626433832795
+
 #include <Wire.h>
 #include <Arduino.h>
 
