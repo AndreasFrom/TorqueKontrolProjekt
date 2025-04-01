@@ -111,7 +111,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 switch (instance->_mode)    
                 {
                 case 0:
-                instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
+                    instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
                     break;
                 case 1:
                     instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque
