@@ -3,8 +3,8 @@
 
 #include "motor_pid.h"
 
-MotorPID::MotorPID(uint8_t mode, double kp, double ki, double kd, double setpoint, double sampleTime)
-    : mode_(mode), kp_(kp), ki_(ki), kd_(kd), setpoint_(setpoint),
+MotorPID::MotorPID(double kp, double ki, double kd, double setpoint, double sampleTime)
+    : kp_(kp), ki_(ki), kd_(kd), setpoint_(setpoint),
       integral_(0), prev_error_(0), sampleTime_(sampleTime) {
     // Validate sampleTime
     if (sampleTime_ <= 0) {
@@ -13,8 +13,7 @@ MotorPID::MotorPID(uint8_t mode, double kp, double ki, double kd, double setpoin
     }
 }
 
-void MotorPID::setGains(uint8_t mode, double kp, double ki, double kd) {
-    mode_ = mode;
+void MotorPID::setGains(double kp, double ki, double kd) {
     kp_ = kp;
     ki_ = ki;
     kd_ = kd;

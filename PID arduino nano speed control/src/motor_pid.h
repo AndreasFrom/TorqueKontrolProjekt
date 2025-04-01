@@ -5,8 +5,8 @@
 
 class MotorPID {
 public:
-    MotorPID(uint8_t mode, double kp, double ki, double kd, double setpoint = 300, double sampleTime = 0.01);
-    void setGains(uint8_t mode, double kp, double ki, double kd);
+    MotorPID(double kp, double ki, double kd, double setpoint = 300, double sampleTime = 0.01);
+    void setGains(double kp, double ki, double kd);
     void setSetpoint(double setpoint);
     double compute(double current_value);
     void reset();

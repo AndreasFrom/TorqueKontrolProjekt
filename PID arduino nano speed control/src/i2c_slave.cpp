@@ -67,8 +67,6 @@ double I2CSlave::getKd() {
 }
 
 uint8_t I2CSlave::getCtrlMode() {
-    Serial.print("DEBUG Mode: ");
-    Serial.println(_mode);
     return _mode;
 }
 

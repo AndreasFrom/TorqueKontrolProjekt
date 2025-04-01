@@ -128,8 +128,7 @@ void loop() {
 
     // Update PID gains only if new values are available
     if (i2cSlave.newPIDGainsAvailable) {
-        Serial.println("DEBUG, New gains");
-        pid.setGains(i2cSlave.getCtrlMode(), i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
+        pid.setGains(i2cSlave.getKp(), i2cSlave.getKi(), i2cSlave.getKd());
         i2cSlave.newPIDGainsAvailable = false; // Reset the flag
     }
 }
