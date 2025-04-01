@@ -114,7 +114,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                     instance->_setpoint = (Wire.read() / SCALE_FACTOR_SPEED) * VtoRPM;  // Scale for RPM
                     break;
                 case 1:
-                    instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque
+                    instance->_setpoint = Wire.read() / (SCALE_FACTOR_TORQUE / SCALE_FACTOR_INTERNAL_TORQUE);  // Scale for Torque (received in 10*^-3 Nm (Milli newton meter))
                     break;
                 case 2:
                     instance->_setpoint = Wire.read() / SCALE_FACTOR_RPM;  // Scale for RPM
@@ -149,8 +149,8 @@ void I2CSlave::requestEvent() { // Send data to master
                 break;
 
             case 1 : // Torque
-                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_TORQUE));
-                Wire.write((byte)(instance->_currentTorque * SCALE_FACTOR_TORQUE));
+                Wire.write((byte)(instance->_setpoint * (SCALE_FACTOR_TORQUE / SCALE_FACTOR_INTERNAL_TORQUE)));
+                Wire.write((byte)(instance->_currentTorque * (SCALE_FACTOR_TORQUE / SCALE_FACTOR_INTERNAL_TORQUE)));
                 break;
 
             case 2 : // RPM (Secret mode)
