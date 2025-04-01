@@ -25,7 +25,7 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 #define PI 3.1415926535897932384626433832795
 
 // Variables
-double currentRPM = 1;
+double currentRPM = 0.001;
 double currentTorque = 1; 
 double currentVelocity = 1;
 double motorCurrent = 1;
@@ -60,7 +60,7 @@ void controlLoop() {
     double output = 0;
     switch (i2cSlave.getCtrlMode()) {
         case 0 : // Speed control
-            output = pid.compute(currentVelocity);
+            output = pid.compute(currentRPM);
             break;
 
         case 1 : // Torque control

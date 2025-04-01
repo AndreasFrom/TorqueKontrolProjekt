@@ -14,7 +14,7 @@ Ultimate gain (Kp) Ku = 2.2
 Aflæser periode til 5 samples, dvs. 50ms
 Tu er 50ms.
 
-G: (Classic PID)
+G: (Classic PID) (Vi bruger denne)
 Kp = 0.6 * Ku = 1.32
 Ki = 1.2 * (Ku / Tu) = 52.8
 Kd = 0.075 * Ku * Tu = 0.008
@@ -27,3 +27,9 @@ Ki = 0.66 * (Ku / Tu) = 29.04
 Kd = 0.11 * Ku * Tu = 0.012
 
 Den er også fin
+
+
+I: Tester nu med Velocity control, som bruger RPM internt
+bruger classic PID værdier fra G
+
+Ser rigtig fin ud, kan logges

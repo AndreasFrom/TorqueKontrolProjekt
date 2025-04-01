@@ -16,6 +16,11 @@
 #define SCALE_FACTOR_KI 800
 #define SCALE_FACTOR_KD 10000
 
+// 60 / (PI * diameter_wheel)
+#define VtoRPM 280.862
+// (PI * diameter_wheel) / 60
+#define RPMtoV 0.00356
+
 #include <Wire.h>
 #include <Arduino.h>
 
@@ -30,7 +35,7 @@ public:
     double getKp();
     double getKi();
     double getKd();
-    char getCtrlMode();
+    uint8_t getCtrlMode();
 
     bool newPIDGainsAvailable = false;
 

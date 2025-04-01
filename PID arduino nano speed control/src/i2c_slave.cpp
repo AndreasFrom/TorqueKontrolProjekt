@@ -66,7 +66,7 @@ double I2CSlave::getKd() {
     return _kd;
 }
 
-char I2CSlave::getCtrlMode() {
+uint8_t I2CSlave::getCtrlMode() {
     return _mode;
 }
 
@@ -111,7 +111,7 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 switch (instance->_mode)    
                 {
                 case 0:
-                instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
+                    instance->_setpoint = (Wire.read() / SCALE_FACTOR_SPEED) * VtoRPM;  // Scale for RPM
                     break;
                 case 1:
                     instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque
@@ -144,7 +144,7 @@ void I2CSlave::requestEvent() { // Send data to master
         // Return Setpoint and measured Speed/Torque/RPM
         switch (instance->_mode){
             case 0 : // Speed
-                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_SPEED));  
+                Wire.write((byte)((instance->_setpoint * SCALE_FACTOR_SPEED) * RPMtoV ));  
                 Wire.write((byte)(instance->_currentVelocity * SCALE_FACTOR_SPEED));
                 break;
 
