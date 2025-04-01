@@ -37,7 +37,7 @@ int step = 0;
 // Objects
 MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
-MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 5);
+MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 10);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
 I2CSlave i2cSlave(currentVelocity, currentTorque, currentRPM, motorCurrent);
 

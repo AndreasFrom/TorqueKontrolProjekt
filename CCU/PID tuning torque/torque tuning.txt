@@ -1,0 +1,19 @@
+Set 50, dvs 25*10^-3Nm som burte være ca 500mA
+A: Kp = 5, oscillerer
+B: Kp = 3, oscillerer/støjet
+
+Skiftet til 10 måling midlingsfilter på strøm (var 5 før)
+
+C: Kp = 3, oscillerer
+D: Kp = 1.5, tæt på (Bruger denne Ku = 1.5)
+E: Kp = 1.2, Den er stabil
+
+Aflæser periode til 5 samples, dvs. 50ms
+Tu er 50ms.
+
+F: (Classic PID) (Vi bruger denne)
+Kp = 0.6 * Ku = 0.9
+Ki = 1.2 * (Ku / Tu) = 36.0
+Kd = 0.075 * Ku * Tu = 0.006
+
+Okay ish, den kører godt nok stærkt, det er jo konstant kraft
