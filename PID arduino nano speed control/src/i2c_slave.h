@@ -30,7 +30,7 @@ public:
     double getKp();
     double getKi();
     double getKd();
-    char getCtrlMode();
+    uint8_t getCtrlMode();
 
     bool newPIDGainsAvailable = false;
 
