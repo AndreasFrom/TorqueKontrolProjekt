@@ -12,7 +12,6 @@ public:
     void reset();
 
 private:
-    uint8_t mode_;
     double kp_, ki_, kd_; // PID gains
     double setpoint_;     // Desired setpoint
     double integral_;     // Integral term
