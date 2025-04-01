@@ -60,7 +60,7 @@ void controlLoop() {
     double output = 0;
     switch (i2cSlave.getCtrlMode()) {
         case 0 : // Speed control
-            output = pid.compute(currentVelocity);
+            output = pid.compute(currentRPM);
             break;
 
         case 1 : // Torque control

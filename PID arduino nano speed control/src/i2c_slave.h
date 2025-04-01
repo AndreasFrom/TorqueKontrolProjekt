@@ -16,6 +16,11 @@
 #define SCALE_FACTOR_KI 800
 #define SCALE_FACTOR_KD 10000
 
+// 60 / (PI * diameter_wheel)
+#define VtoRPM 0.00356
+// (PI * diameter_wheel) / 60
+#define RPMtoV 280.862
+
 #include <Wire.h>
 #include <Arduino.h>
 
