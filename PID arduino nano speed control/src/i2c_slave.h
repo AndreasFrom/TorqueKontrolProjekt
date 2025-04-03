@@ -9,12 +9,19 @@
 #define CMD_SetPIDSetpoint 0x20
 
 #define SCALE_FACTOR_SPEED 71.0
-#define SCALE_FACTOR_TORQUE 510.0
+#define SCALE_FACTOR_TORQUE 0.5
 #define SCALE_FACTOR_RPM 0.25
 #define SCALE_FACTOR_CURRENT 57.0
 #define SCALE_FACTOR_KP 1000
 #define SCALE_FACTOR_KI 800
 #define SCALE_FACTOR_KD 10000
+
+#define SCALE_FACTOR_INTERNAL_TORQUE 2
+
+// 60 / (PI * diameter_wheel)
+#define VtoRPM 280.862
+// (PI * diameter_wheel) / 60
+#define RPMtoV 0.00356
 
 #include <Wire.h>
 #include <Arduino.h>
@@ -30,7 +37,7 @@ public:
     double getKp();
     double getKi();
     double getKd();
-    char getCtrlMode();
+    uint8_t getCtrlMode();
 
     bool newPIDGainsAvailable = false;
 

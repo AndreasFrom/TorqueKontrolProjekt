@@ -7,13 +7,15 @@
 #include <DFRobot_BMX160.h>
 #include "sdLogger.h"
 #include "i2c_master.h"
+#include "SimpleKalmanFilter.h"
 
 
 #define SEND_DATA_SERIAL false
 
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
-WiFiHandler wifiHandler("net", "simsimbims", 4242);
+//WiFiHandler wifiHandler("net", "simsimbims", 4242);
+WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 WiFiClient client;
 
 // SD card
@@ -45,6 +47,17 @@ int setpoint1 = 600; // right front
 int setpoint2 = 100; // left rear
 int setpoint3 = 600; // right rear
 
+// Create Kalman filters for each axis with appropriate parameters
+// Gyroscope: 0.07 °/s noise
+SimpleKalmanFilter gyroFilterX(0.07, 1.0, 0.01);
+SimpleKalmanFilter gyroFilterY(0.07, 1.0, 0.01);
+SimpleKalmanFilter gyroFilterZ(0.07, 1.0, 0.01);
+
+// Accelerometer: 1.8mg noise (0.01766 m/s²)
+SimpleKalmanFilter accelFilterX(0.01766, 1.0, 0.01);
+SimpleKalmanFilter accelFilterY(0.01766, 1.0, 0.01);
+SimpleKalmanFilter accelFilterZ(0.01766, 1.0, 0.01);
+
 
 
 // Prototypes
@@ -63,6 +76,11 @@ void timerISR() {
         bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
 
+        // Apply Kalman filtering
+        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z);
+        float filteredAccelX = accelFilterX.updateEstimate(Oaccel.x);
+        float filteredAccelY = accelFilterY.updateEstimate(Oaccel.y);
+
         MUData MU0;
         MUData MU1;
         MUData MU2;
@@ -75,7 +93,7 @@ void timerISR() {
         sdLogger.addData({
             timestamp, 
             mode, setpoint, setpoint_radius, 
-            Oaccel.x, Oaccel.y, Ogyro.z,
+            filteredAccelX, filteredAccelY, filteredGyroZ,
             kp, ki, kd,
             MU0, MU1, MU2, MU3
         });

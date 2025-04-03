@@ -74,6 +74,7 @@ bool I2CMaster::requestData(uint8_t slave_adress, MUData& data) {
 
         switch (_mode)
         {
+        case 0:
             data.setpoint_recv = static_cast<double>(raw_setpoint) / SCALE_FACTOR_SPEED;
             data.value_recv = static_cast<double>(raw_value) / SCALE_FACTOR_SPEED;
             break;
