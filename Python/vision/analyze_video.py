@@ -96,25 +96,26 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
         print(f"Error during marker detection: {str(e)}")
         return False
 
-def process_corner_markers(tracked_markers, corner_ids):
-    try:
-        selected_corners = []
-        selected_ids = []
-        other_corners = []
-        other_ids = []
+def process_markers(tracked_markers, corner_ids):
+    selected_corners = []
+    selected_ids = []
+    object_corners = []
+    object_ids = []
 
-        for marker_id, marker_data in tracked_markers.items():
-            if marker_id in corner_ids:
-                selected_corners.append(marker_data['corners'][0])
-                selected_ids.append(marker_id)
-            else:
-                other_corners.append(marker_data['corners'][0])
-                other_ids.append(marker_id)
+    for marker_id, marker_data in tracked_markers.items():
+        if marker_id in corner_ids:
+            selected_corners.append(marker_data['corners'][0])
+            selected_ids.append(marker_id)
+        elif marker_id == CAR_MARKER:
+            # Take average to find center of car marker
+            car_corners = np.array(marker_data['corners'])
+            object_corners.append(np.mean(car_corners, axis=0))  # This will be the car's center
+            object_ids.append(marker_id)
+        else:
+            object_corners.append(marker_data['corners'][0])
+            object_ids.append(marker_id)
 
-        return selected_corners, selected_ids, other_corners, other_ids
-    except Exception as e:
-        print(f"Error during corner processing: {str(e)}")
-        return [], [], [], []
+    return selected_corners, selected_ids, object_corners, object_ids
 
 def warp_frame(frame, selected_corners, frame_width, frame_height):
     try:
@@ -136,25 +137,31 @@ def warp_frame(frame, selected_corners, frame_width, frame_height):
         print(f"Error during frame warping: {str(e)}")
         return None, None
 
-def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
+def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
     try:
         marker_locations = {}
         circle_center = None
 
-        for i in range(len(other_ids)):
-            marker_point = other_corners[i][0].reshape(1, 1, -1)
+        for i in range(len(object_ids)):
+            if i == CAR_MARKER:
+                # Take average to find center of car marker
+                car_corners = np.array(object_corners['corners'])
+                marker_point = np.mean(car_corners, axis=0)
+                
+            else:
+                marker_point = object_corners[i][0].reshape(1, 1, -1)
             transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
             
             # Calculate real-world coordinates
             x_meters = (transformed_center[0] / frame_width) * real_world_distance
             y_meters = (transformed_center[1] / frame_height) * real_world_distance
-            marker_locations[other_ids[i]] = (x_meters, y_meters)
+            marker_locations[object_ids[i]] = (x_meters, y_meters)
 
-            text = f"ID {other_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
+            text = f"ID {object_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
             cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
-            if other_ids[i] == CIRCLE_MARKER:
+            if object_ids[i] == CIRCLE_MARKER:
                 radius_pixels = int((radius_meters / real_world_distance) * frame_height)
                 cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
                 circle_center = (x_meters, y_meters)
@@ -234,13 +241,13 @@ def main():
                     break
 
                 detect_markers(detector, frame, valid_ids, tracked_markers)
-                selected_corners, selected_ids, other_corners, other_ids = process_corner_markers(tracked_markers, corner_ids)
+                selected_corners, selected_ids, object_corners, object_ids = process_markers(tracked_markers, corner_ids)
 
                 if len(selected_corners) == 4:
                     warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
                     if warped_image is not None:
                         marker_locations, circle_center = calculate_marker_locations(
-                            other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
+                            object_ids, object_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
                         )
 
                         if circle_center is not None:
@@ -252,12 +259,13 @@ def main():
                         if CAR_MARKER in marker_locations:
                             x, y = marker_locations[CAR_MARKER]
                             distance_from_circle = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2) if last_circle_center is not None else 0
-                            dsitance_from_prevoius_point = np.sqrt((x - previous_x)**2 + (y - previous_y)**2) if previous_x is not None and previous_y is not None else 0
-                            speed = dsitance_from_prevoius_point / (1 / fps)
-                            csv_data.append((fps, frame_index, CAR_MARKER, x, y, distance_from_circle, dsitance_from_prevoius_point,speed))
+                            distance_from_previous_point = np.sqrt((x - previous_x)**2 + (y - previous_y)**2) if previous_x is not None and previous_y is not None else 0
+                            speed = distance_from_previous_point / (1 / fps)
+                            csv_data.append((fps, frame_index, CAR_MARKER, x, y, distance_from_circle, distance_from_previous_point, speed))
 
-                            previous_x = x 
-                            previous_y = y 
+                            previous_x = x
+                            previous_y = y
+
                 else:
                     missing_corners_count += 1
 
