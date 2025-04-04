@@ -107,12 +107,14 @@ def process_markers(tracked_markers, corner_ids):
             selected_corners.append(marker_data['corners'][0])
             selected_ids.append(marker_id)
         elif marker_id == CAR_MARKER:
-            # Take average to find center of car marker
+            # For the car marker, calculate the mean of all corners as its position
             car_corners = np.array(marker_data['corners'])
-            object_corners.append(np.mean(car_corners, axis=0))  # This will be the car's center
+            car_center = np.mean(car_corners, axis=0)  # Mean of all corners
+            object_corners.append(car_center)  # This is the car's center
             object_ids.append(marker_id)
         else:
-            object_corners.append(marker_data['corners'][0])
+            # For other markers, just take the top-left corner
+            object_corners.append(marker_data['corners'][0])  # Top-left corner
             object_ids.append(marker_id)
 
     return selected_corners, selected_ids, object_corners, object_ids
@@ -143,26 +145,31 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
         circle_center = None
 
         for i in range(len(object_ids)):
-            if i == CAR_MARKER:
+            if object_ids[i] == CAR_MARKER:
                 # Take average to find center of car marker
-                car_corners = np.array(object_corners['corners'])
-                marker_point = np.mean(car_corners, axis=0)
-                
+                car_corners = np.array(object_corners[i])  # Access the correct car corners
+                marker_point = np.mean(car_corners, axis=0).reshape(1, 1, 2)  # Reshape to (1, 1, 2)
             else:
-                marker_point = object_corners[i][0].reshape(1, 1, -1)
+                marker_point = np.array(object_corners[i]).reshape(1, 1, 2)  # Ensure reshaping to (1, 1, 2)
+
+
+            # Perform the perspective transformation
             transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
-            
+
             # Calculate real-world coordinates
             x_meters = (transformed_center[0] / frame_width) * real_world_distance
             y_meters = (transformed_center[1] / frame_height) * real_world_distance
             marker_locations[object_ids[i]] = (x_meters, y_meters)
 
+            # Display the marker location on the warped image
             text = f"ID {object_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
             cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
             if object_ids[i] == CIRCLE_MARKER:
+                # Calculate the radius in pixels based on the real-world radius
                 radius_pixels = int((radius_meters / real_world_distance) * frame_height)
+                # Draw a circle around the marker on the warped image
                 cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
                 circle_center = (x_meters, y_meters)
 
@@ -170,6 +177,7 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
     except Exception as e:
         print(f"Error during marker location calculation: {str(e)}")
         return {}, None
+
 
 def save_to_csv(data, output_csv):
     try:
