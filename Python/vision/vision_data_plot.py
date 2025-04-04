@@ -12,6 +12,7 @@ def plot_marker_data(csv_path, output_plot_path):
     x_positions = df["X Position (m)"]
     y_positions = df["Y Position (m)"]
     speed = df["Speed (m/s)"]
+
     distances = df["Distance from Circle (m)"]
     seconds = frames*1/fps
     
@@ -51,7 +52,7 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[0].grid()
     
     # Plot moving average speed
-    window_size = int(fps.iloc[0])  # Set window size to 1 second based on FPS
+    window_size = int(fps.iloc[0] * 0.5)  # Set window size to 1 second based on FPS
     moving_avg_speed = speed.rolling(window=window_size).mean()
     axes[1].plot(seconds, moving_avg_speed, label='Moving Average Speed', color='orange')
     axes[1].set_xlabel("s")
@@ -86,7 +87,12 @@ def plot_marker_data(csv_path, output_plot_path):
     print(f"Plots saved to {os.path.dirname(output_plot_path)}")
 
 if __name__ == "__main__":
-    csv_file = os.path.join(os.path.dirname(__file__), 'output_files/marker_positions.csv')
-    plot_output = os.path.join(os.path.dirname(__file__), 'output_files/marker_plot.png')
+    input_folder = os.path.join(os.path.dirname(__file__), 'output_files')
+    output_folder = os.path.join(os.path.dirname(__file__), 'output_plots')
+    os.makedirs(output_folder, exist_ok=True)
     
-    plot_marker_data(csv_file, plot_output)
+    for file_name in os.listdir(input_folder):
+        if file_name.endswith('.csv'):
+            csv_file = os.path.join(input_folder, file_name)
+            plot_output = os.path.join(output_folder, file_name.replace('.csv', '.png'))
+            plot_marker_data(csv_file, plot_output)

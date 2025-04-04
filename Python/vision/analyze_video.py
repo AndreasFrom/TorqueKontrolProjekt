@@ -5,11 +5,12 @@ import csv
 from tqdm import tqdm
 import sys
 from collections import deque
+import argparse
 
 # Constants
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
-MAX_DISTANCE_THRESHOLD = 200  # Maximum allowed distance between consecutive points in pixels
+MAX_DISTANCE_THRESHOLD = 500  # Maximum allowed distance between consecutive points in pixels
 MOVING_AVG_WINDOW = 10  # Number of frames to average over
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
@@ -176,14 +177,21 @@ def save_to_csv(data, output_csv):
         print(f"Error saving CSV file: {str(e)}")
 
 def main():
+
     try:
+        # Parse command-line arguments
+        parser = argparse.ArgumentParser(description="Process a video file to detect and track markers.")
+        parser.add_argument("video_path", type=str, help="Path to the input video file")
+        args = parser.parse_args()
+
         # Create output directory if it doesn't exist
         output_dir = os.path.join(os.path.dirname(__file__), 'output_files')
         os.makedirs(output_dir, exist_ok=True)
         
-        video_path = 'input_files/IMG_4387.mov'
-        output_path = os.path.join(output_dir, 'output_warped_video.mp4')
-        output_csv = os.path.join(output_dir, 'marker_positions.csv')
+        video_path = args.video_path
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        output_path = os.path.join(output_dir, f'{video_name}_warped_video.mp4')
+        output_csv = os.path.join(output_dir, f'{video_name}_marker_positions.csv')
 
         # Check if input file exists
         if not os.path.exists(video_path):
@@ -241,9 +249,9 @@ def main():
                         out.write(warped_image)
                         total_processed_frames += 1
 
-                        if CAR_MARKER in marker_locations and last_circle_center is not None:
+                        if CAR_MARKER in marker_locations:
                             x, y = marker_locations[CAR_MARKER]
-                            distance_from_circle = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
+                            distance_from_circle = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2) if last_circle_center is not None else 0
                             dsitance_from_prevoius_point = np.sqrt((x - previous_x)**2 + (y - previous_y)**2) if previous_x is not None and previous_y is not None else 0
                             speed = dsitance_from_prevoius_point / (1 / fps)
                             csv_data.append((fps, frame_index, CAR_MARKER, x, y, distance_from_circle, dsitance_from_prevoius_point,speed))
