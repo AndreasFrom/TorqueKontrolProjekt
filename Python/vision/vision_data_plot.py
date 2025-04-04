@@ -23,7 +23,7 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[0].plot(seconds, y_positions, label='Y Position', color='g')
     axes[0].set_xlabel("s")
     axes[0].set_ylabel("Position (m)")
-    axes[0].set_title("Marker 11 Position Over Time")
+    axes[0].set_title("Marker 10 Position Over Time")
     axes[0].legend()
     axes[0].grid()
     
@@ -31,28 +31,24 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[1].plot(seconds, distances, label='Distance from Circle', color='r')
     axes[1].set_xlabel("s")
     axes[1].set_ylabel("Distance (m)")
-    axes[1].set_title("Marker 11 Distance from Circle Over Time")
+    axes[1].set_title("Marker 10 Distance from Circle Over Time")
     axes[1].legend()
     axes[1].grid()
-
-    #save
+    
+    # Save
     fig_pos_time.tight_layout()
-    fig_pos_time.savefig(output_plot_path)
-
-    #create speed plot
+    fig_pos_time.savefig(output_plot_path.replace('.png', '_position.png'))
+    
+    # Create speed plot
     fig_speed, axes = plt.subplots(2, 1, figsize=(10, 4))
-
-    #plot speed
+    
+    # Plot speed
     axes[0].plot(seconds, speed, label='Speed', color='purple')
     axes[0].set_xlabel("s")
     axes[0].set_ylabel("Speed (m/s)")
-    axes[0].set_title("Marker 11 Speed Over Time")
+    axes[0].set_title("Marker 10 Speed Over Time")
     axes[0].legend()
     axes[0].grid()
-
-    # saveplot
-    plt.tight_layout()
-    plt.savefig("marker_speed_plot.png")
     
     # Plot moving average speed
     window_size = int(fps.iloc[0])  # Set window size to 1 second based on FPS
@@ -60,20 +56,20 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[1].plot(seconds, moving_avg_speed, label='Moving Average Speed', color='orange')
     axes[1].set_xlabel("s")
     axes[1].set_ylabel("Speed (m/s)")
-    axes[1].set_title(f"Marker 11 Speed Moving Average (Window Size: {window_size})")
+    axes[1].set_title(f"Marker 10 Speed Moving Average (Window Size: {window_size})")
     axes[1].legend()
     axes[1].grid()
-
-    #saveplot
+    
+    # Save
     fig_speed.tight_layout()
-    fig_speed.savefig("marker_speed_plot.png")
-
+    fig_speed.savefig(output_plot_path.replace('.png', '_speed.png'))
+    
     # Plot positions
     plt.figure(figsize=(6, 6))  # Set figure size to ensure a square plot
     plt.plot(x_positions, y_positions, label='Position', color='blue')
     plt.xlabel("X Position (m)")
     plt.ylabel("Y Position (m)")
-    plt.title("Marker 11 Position Plot")
+    plt.title("Marker 10 Position Plot")
     plt.legend()
     plt.grid()
     plt.axis('equal')
@@ -83,18 +79,11 @@ def plot_marker_data(csv_path, output_plot_path):
     moving_avg_y_positions = y_positions.rolling(window=window_size).mean()
     plt.plot(moving_avg_x_positions, moving_avg_y_positions, label='Moving Average Position', color='orange')
     plt.legend()
-
-    #saveplot
-    plt.savefig("marker_positions_plot.png")
-
-
-    # Adjust layout
-    plt.tight_layout()
     
     # Save plot
-    plt.savefig(output_plot_path)
-    plt.show()
-    print(f"Plot saved to {output_plot_path}")
+    plt.tight_layout()
+    plt.savefig(output_plot_path.replace('.png', '_trajectory.png'))
+    print(f"Plots saved to {os.path.dirname(output_plot_path)}")
 
 if __name__ == "__main__":
     csv_file = os.path.join(os.path.dirname(__file__), 'output_files/marker_positions.csv')
