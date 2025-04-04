@@ -91,12 +91,12 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
                     # Fall back to last known corners
                     tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
 
-        return corners, ids, detected_ids
+        return True
     except Exception as e:
         print(f"Error during marker detection: {str(e)}")
-        return None, None, set()
+        return False
 
-def process_corners(tracked_markers, corner_ids):
+def process_corner_markers(tracked_markers, corner_ids):
     try:
         selected_corners = []
         selected_ids = []
@@ -233,8 +233,8 @@ def main():
                 if not ret:
                     break
 
-                corners, ids, detected_ids = detect_markers(detector, frame, valid_ids, tracked_markers)
-                selected_corners, selected_ids, other_corners, other_ids = process_corners(tracked_markers, corner_ids)
+                detect_markers(detector, frame, valid_ids, tracked_markers)
+                selected_corners, selected_ids, other_corners, other_ids = process_corner_markers(tracked_markers, corner_ids)
 
                 if len(selected_corners) == 4:
                     warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
