@@ -7,31 +7,87 @@ def plot_marker_data(csv_path, output_plot_path):
     df = pd.read_csv(csv_path)
     
     # Extract columns
+    fps = df["fps"]
     frames = df["Frame"]
     x_positions = df["X Position (m)"]
     y_positions = df["Y Position (m)"]
+    speed = df["Speed (m/s)"]
     distances = df["Distance from Circle (m)"]
+    seconds = frames*1/fps
     
     # Create plots
-    fig, axes = plt.subplots(2, 1, figsize=(10, 8))
+    fig_pos_time, axes = plt.subplots(2, 1, figsize=(10, 8))
     
     # Plot X and Y positions
-    axes[0].plot(frames, x_positions, label='X Position', color='b')
-    axes[0].plot(frames, y_positions, label='Y Position', color='g')
-    axes[0].set_xlabel("Frame")
+    axes[0].plot(seconds, x_positions, label='X Position', color='b')
+    axes[0].plot(seconds, y_positions, label='Y Position', color='g')
+    axes[0].set_xlabel("s")
     axes[0].set_ylabel("Position (m)")
     axes[0].set_title("Marker 11 Position Over Time")
     axes[0].legend()
     axes[0].grid()
     
     # Plot Distance from Circle
-    axes[1].plot(frames, distances, label='Distance from Circle', color='r')
-    axes[1].set_xlabel("Frame")
+    axes[1].plot(seconds, distances, label='Distance from Circle', color='r')
+    axes[1].set_xlabel("s")
     axes[1].set_ylabel("Distance (m)")
     axes[1].set_title("Marker 11 Distance from Circle Over Time")
     axes[1].legend()
     axes[1].grid()
+
+    #save
+    fig_pos_time.tight_layout()
+    fig_pos_time.savefig(output_plot_path)
+
+    #create speed plot
+    fig_speed, axes = plt.subplots(2, 1, figsize=(10, 4))
+
+    #plot speed
+    axes[0].plot(seconds, speed, label='Speed', color='purple')
+    axes[0].set_xlabel("s")
+    axes[0].set_ylabel("Speed (m/s)")
+    axes[0].set_title("Marker 11 Speed Over Time")
+    axes[0].legend()
+    axes[0].grid()
+
+    # saveplot
+    plt.tight_layout()
+    plt.savefig("marker_speed_plot.png")
     
+    # Plot moving average speed
+    window_size = int(fps.iloc[0])  # Set window size to 1 second based on FPS
+    moving_avg_speed = speed.rolling(window=window_size).mean()
+    axes[1].plot(seconds, moving_avg_speed, label='Moving Average Speed', color='orange')
+    axes[1].set_xlabel("s")
+    axes[1].set_ylabel("Speed (m/s)")
+    axes[1].set_title(f"Marker 11 Speed Moving Average (Window Size: {window_size})")
+    axes[1].legend()
+    axes[1].grid()
+
+    #saveplot
+    fig_speed.tight_layout()
+    fig_speed.savefig("marker_speed_plot.png")
+
+    # Plot positions
+    plt.figure(figsize=(6, 6))  # Set figure size to ensure a square plot
+    plt.plot(x_positions, y_positions, label='Position', color='blue')
+    plt.xlabel("X Position (m)")
+    plt.ylabel("Y Position (m)")
+    plt.title("Marker 11 Position Plot")
+    plt.legend()
+    plt.grid()
+    plt.axis('equal')
+    
+    # Plot positions with moving average filter
+    moving_avg_x_positions = x_positions.rolling(window=window_size).mean()
+    moving_avg_y_positions = y_positions.rolling(window=window_size).mean()
+    plt.plot(moving_avg_x_positions, moving_avg_y_positions, label='Moving Average Position', color='orange')
+    plt.legend()
+
+    #saveplot
+    plt.savefig("marker_positions_plot.png")
+
+
     # Adjust layout
     plt.tight_layout()
     

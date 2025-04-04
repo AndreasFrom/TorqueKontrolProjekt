@@ -166,7 +166,7 @@ def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, fr
 def save_to_csv(data, output_csv):
     try:
         os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-        header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
+        header = ["fps", "Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)", "Distance from Previous Point (m)", "Speed (m/s)"]
         with open(output_csv, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(header)
@@ -216,6 +216,9 @@ def main():
         missing_corners_count = 0
         total_processed_frames = 0
 
+        previous_x = None
+        previous_y = None
+
         with tqdm(total=total_frames, desc="Processing Video", unit="frame") as pbar:
             while True:
                 ret, frame = cap.read()
@@ -240,8 +243,13 @@ def main():
 
                         if CAR_MARKER in marker_locations and last_circle_center is not None:
                             x, y = marker_locations[CAR_MARKER]
-                            distance = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
-                            csv_data.append((frame_index, CAR_MARKER, x, y, distance))
+                            distance_from_circle = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
+                            dsitance_from_prevoius_point = np.sqrt((x - previous_x)**2 + (y - previous_y)**2) if previous_x is not None and previous_y is not None else 0
+                            speed = dsitance_from_prevoius_point / (1 / fps)
+                            csv_data.append((fps, frame_index, CAR_MARKER, x, y, distance_from_circle, dsitance_from_prevoius_point,speed))
+
+                            previous_x = x 
+                            previous_y = y 
                 else:
                     missing_corners_count += 1
 
