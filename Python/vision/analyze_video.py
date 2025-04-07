@@ -8,6 +8,7 @@ from collections import deque
 import argparse
 
 num_iterations = 0
+debug = 0  # Global variable to control debug mode
 # Constants
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
@@ -167,19 +168,32 @@ def warp_frame(frame, selected_corners, frame_width, frame_height):
 
 def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
     try:
-        marker_locations = {}
-        circle_center = None
+        marker_locations = {}  # Dictionary to hold the locations of the markers
+        circle_center = None   # Placeholder for circle center (if needed for your application)
 
         for i in range(len(object_ids)):
+            # Convert corners into a numpy array for easier handling
+            corners = np.array(object_corners[i])
+
+            # Handle car marker separately
             if object_ids[i] == CAR_MARKER:
-                # Take average to find center of car marker
-                car_corners = np.array(object_corners[i])  # Access the correct car corners
-                marker_point = np.mean(car_corners, axis=0).reshape(1, 1, 2)  # Reshape to (1, 1, 2)
+                # For the car marker, take the average of its corners to get the center
+                car_corners = corners  # Access the correct car corners
+                
+                # If corners are in shape (4, 1, 2), squeeze to (4, 2)
+                if car_corners.ndim > 2:
+                    car_corners = car_corners.squeeze()
+                
+                # Take the average to find the center of the car marker
+                marker_center = np.mean(car_corners, axis=0)  # Calculate center of the marker
+                
+                # Reshape the center to (1, 1, 2) for perspective transformation
+                marker_point = marker_center.reshape(1, 1, 2)
+
             else:
-                marker_point = np.array(object_corners[i]).reshape(1, 1, 2)  # Ensure reshaping to (1, 1, 2)
+                marker_point = marker_center.reshape(1, 1, 2)
 
-
-            # Perform the perspective transformation
+            # Perform the perspective transformation to get the real-world location
             transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
 
             # Calculate real-world coordinates
@@ -192,17 +206,18 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
             cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
                         cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
+            # If it's the circle marker, draw a circle around it
             if object_ids[i] == CIRCLE_MARKER:
-                # Calculate the radius in pixels based on the real-world radius
                 radius_pixels = int((radius_meters / real_world_distance) * frame_height)
-                # Draw a circle around the marker on the warped image
                 cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
                 circle_center = (x_meters, y_meters)
 
         return marker_locations, circle_center
+
     except Exception as e:
         print(f"Error during marker location calculation: {str(e)}")
         return {}, None
+
 
 
 def save_to_csv(data, output_csv):
@@ -217,35 +232,37 @@ def save_to_csv(data, output_csv):
     except Exception as e:
         print(f"Error saving CSV file: {str(e)}")
 
-def main():
+def parse_arguments():
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Process a video file to detect and track markers.")
+    parser.add_argument("video_path", type=str, help="Path to the input video file")
+    parser.add_argument("--debug", type=int, choices=[0, 1, 2, 3], default=0, 
+                        help="Set debug level: 0 (off), 1 (basic), 2 (detailed), 3 (save debug frames)")
 
+    return parser.parse_args()
+
+def main():
     try:
-        # Parse command-line arguments
-        parser = argparse.ArgumentParser(description="Process a video file to detect and track markers.")
-        parser.add_argument("video_path", type=str, help="Path to the input video file")
-        parser.add_argument("--debug", type=int, choices=[0, 1, 2, 3], default=0, 
-                    help="Set debug level: 0 (off), 1 (basic), 2 (detailed), 3 (save debug frames)")
-        args = parser.parse_args()
+        # Parse arguments
+        args = parse_arguments()
 
         # Create output directory if it doesn't exist
         output_dir = os.path.join(os.path.dirname(__file__), 'output_files')
         os.makedirs(output_dir, exist_ok=True)
-        
-        # Set debug mode
+
+        # Set debug mode globally
         global debug
-        if args.debug == 0:
-            debug = False
-        elif args.debug == 1:
-            debug = True
+        debug = args.debug
+
+        # Debug messages based on the level
+        if debug == 0:
+            print("Debug mode: Off")
+        elif debug == 1:
             print("Debug mode: Basic logging enabled")
-        elif args.debug == 2:
-            debug = True
+        elif debug == 2:
             print("Debug mode: Detailed logging enabled")
-        elif args.debug == 3:
-            debug = True
+        elif debug == 3:
             print("Debug mode: Saving debug frames")
-        else:
-            debug = False
 
         video_path = args.video_path
         video_name = os.path.splitext(os.path.basename(video_path))[0]
