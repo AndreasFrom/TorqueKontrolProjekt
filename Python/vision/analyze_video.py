@@ -7,6 +7,7 @@ import sys
 from collections import deque
 import argparse
 
+num_iterations = 0
 # Constants
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
@@ -37,7 +38,31 @@ def initialize_video(video_path, output_path_video, frame_width, frame_height, f
 
 def detect_markers(detector, frame, valid_ids, tracked_markers):
     try:
+        global num_iterations
+
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+        # Use CLAHE instead of convertScaleAbs for better contrast
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
+        gray = clahe.apply(gray)
+
+        # Optional: a tiny bit of blur to reduce noise (careful not to blur too much)
+        gray = cv2.GaussianBlur(gray, (3, 3), 0)
+
+
+        # Save debug frame
+        if debug >= 3:
+            if num_iterations % 10 == 0:
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                debug_path = os.path.join(script_dir, f"debug_frame_{num_iterations}.jpg")
+                cv2.imwrite(debug_path, gray)
+                print(f"Debug frame saved to {debug_path}")
+
+
+
+
+        num_iterations += 1
+
         corners, ids, _ = detector.detectMarkers(gray)
         detected_ids = set(ids.flatten()) if ids is not None else set()
 
@@ -76,7 +101,8 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
                                 tracked_markers[marker_id]['smoothed_position'] = avg_position
                         else:
                             # Reject this detection as too far away
-                            print(f"Marker {marker_id} moved too far ({distance:.2f} pixels), using last valid position")
+                            if debug >= 1:
+                                print(f"Marker {marker_id} moved too far ({distance:.2f} pixels), using last valid position")
                             corners = list(corners)  # Convert to a mutable list
                             corners[i] = tracked_markers[marker_id]['last_known_corners']
                             corners = tuple(corners)  # Convert back to a tuple
@@ -197,16 +223,36 @@ def main():
         # Parse command-line arguments
         parser = argparse.ArgumentParser(description="Process a video file to detect and track markers.")
         parser.add_argument("video_path", type=str, help="Path to the input video file")
+        parser.add_argument("--debug", type=int, choices=[0, 1, 2, 3], default=0, 
+                    help="Set debug level: 0 (off), 1 (basic), 2 (detailed), 3 (save debug frames)")
         args = parser.parse_args()
 
         # Create output directory if it doesn't exist
         output_dir = os.path.join(os.path.dirname(__file__), 'output_files')
         os.makedirs(output_dir, exist_ok=True)
         
+        # Set debug mode
+        global debug
+        if args.debug == 0:
+            debug = False
+        elif args.debug == 1:
+            debug = True
+            print("Debug mode: Basic logging enabled")
+        elif args.debug == 2:
+            debug = True
+            print("Debug mode: Detailed logging enabled")
+        elif args.debug == 3:
+            debug = True
+            print("Debug mode: Saving debug frames")
+        else:
+            debug = False
+
         video_path = args.video_path
         video_name = os.path.splitext(os.path.basename(video_path))[0]
         output_path = os.path.join(output_dir, f'{video_name}_warped_video.mp4')
         output_csv = os.path.join(output_dir, f'{video_name}_marker_positions.csv')
+
+        debug_path = os.path.join(output_dir, f'{video_name}_debug_frame.jpg')
 
         # Check if input file exists
         if not os.path.exists(video_path):
@@ -231,31 +277,23 @@ def main():
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         parameters = cv2.aruco.DetectorParameters()
 
-        parameters.adaptiveThreshWinSizeMin = 3  # Smallest window for better local contrast adaptation
-        parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
-        parameters.adaptiveThreshConstant = 7  # Slightly lower value to allow more leniency in thresholding
+        parameters.adaptiveThreshWinSizeMin = 5  # Slightly larger window for better local contrast adaptation
+        parameters.adaptiveThreshWinSizeMax = 100  # Larger window to adapt to varying lighting
+        parameters.adaptiveThreshConstant = 20  # Increased value to handle distant markers
 
-        parameters.minMarkerPerimeterRate = 0.01  # Detect even small markers
-        parameters.maxMarkerPerimeterRate = 4.0  # Allow large markers
+        parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
+        parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
 
-        parameters.polygonalApproxAccuracyRate = 0.05  # Slightly relaxed for robustness
-        parameters.minCornerDistanceRate = 0.02  # Ensures small markers don't get filtered out
-        parameters.minDistanceToBorder = 3  # Reduce border exclusion to detect near edges
+        parameters.polygonalApproxAccuracyRate = 0.05  # More relaxed for robustness
+        parameters.minCornerDistanceRate = 0.01  # Ensures very small markers don't get filtered out
+        parameters.minDistanceToBorder = 0 # Reduce border exclusion to detect near edges
 
         parameters.markerBorderBits = 1  # Reduces the strictness of border detection
-        parameters.minOtsuStdDev = 2.0  # More tolerance to lighting variation
-        parameters.perspectiveRemoveIgnoredMarginPerCell = 0.15  # Allows slightly distorted markers to be detected
+        parameters.minOtsuStdDev = 1.5  # More tolerance to lighting variation
+        parameters.perspectiveRemoveIgnoredMarginPerCell = 0.0  # Allows detection of markers at any angle
 
-        parameters.errorCorrectionRate = 0.8  # High error correction to detect even damaged markers
-        parameters.maxErroneousBitsInBorderRate = 0.7  # Allows detection even if some bits are noisy
-
-        parameters.aprilTagMaxNmaxima = 10  # If using AprilTag, detects more candidate markers
-        parameters.aprilTagCriticalRad = 10 * (3.14159 / 180)  # More tolerance to rotation
-        parameters.aprilTagMinClusterPixels = 5  # Allow smaller detected clusters
-        parameters.aprilTagMaxLineFitMse = 10  # More tolerance to marker shape deformation
-        parameters.aprilTagMinWhiteBlackDiff = 5  # More tolerance to contrast variation
-        parameters.aprilTagDeglitch = 0  # Turn off filtering to maximize detection
-
+        parameters.errorCorrectionRate = 1.0  # High error correction to detect even damaged markers
+        parameters.maxErroneousBitsInBorderRate = 0.8  # Allows detection even if some bits are noisy
 
         detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
         tracked_markers = {}
@@ -277,6 +315,9 @@ def main():
 
                 detect_markers(detector, frame, valid_ids, tracked_markers)
                 selected_corners, selected_ids, object_corners, object_ids = process_markers(tracked_markers, corner_ids)
+                if debug >= 2:
+                    print(f"Frame {frame_index}: Corner IDs: {selected_ids}")
+                    print(f"Frame {frame_index}: Object IDs: {object_ids}")
 
                 if len(selected_corners) == 4:
                     warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
@@ -290,7 +331,7 @@ def main():
 
                         out.write(warped_image)
                         total_processed_frames += 1
-
+                            
                         if CAR_MARKER in marker_locations:
                             x, y = marker_locations[CAR_MARKER]
                             distance_from_circle = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2) if last_circle_center is not None else 0
