@@ -230,6 +230,33 @@ def main():
 
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         parameters = cv2.aruco.DetectorParameters()
+
+        parameters.adaptiveThreshWinSizeMin = 3  # Smallest window for better local contrast adaptation
+        parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
+        parameters.adaptiveThreshConstant = 7  # Slightly lower value to allow more leniency in thresholding
+
+        parameters.minMarkerPerimeterRate = 0.01  # Detect even small markers
+        parameters.maxMarkerPerimeterRate = 4.0  # Allow large markers
+
+        parameters.polygonalApproxAccuracyRate = 0.05  # Slightly relaxed for robustness
+        parameters.minCornerDistanceRate = 0.02  # Ensures small markers don't get filtered out
+        parameters.minDistanceToBorder = 3  # Reduce border exclusion to detect near edges
+
+        parameters.markerBorderBits = 1  # Reduces the strictness of border detection
+        parameters.minOtsuStdDev = 2.0  # More tolerance to lighting variation
+        parameters.perspectiveRemoveIgnoredMarginPerCell = 0.15  # Allows slightly distorted markers to be detected
+
+        parameters.errorCorrectionRate = 0.8  # High error correction to detect even damaged markers
+        parameters.maxErroneousBitsInBorderRate = 0.7  # Allows detection even if some bits are noisy
+
+        parameters.aprilTagMaxNmaxima = 10  # If using AprilTag, detects more candidate markers
+        parameters.aprilTagCriticalRad = 10 * (3.14159 / 180)  # More tolerance to rotation
+        parameters.aprilTagMinClusterPixels = 5  # Allow smaller detected clusters
+        parameters.aprilTagMaxLineFitMse = 10  # More tolerance to marker shape deformation
+        parameters.aprilTagMinWhiteBlackDiff = 5  # More tolerance to contrast variation
+        parameters.aprilTagDeglitch = 0  # Turn off filtering to maximize detection
+
+
         detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
         tracked_markers = {}
 
