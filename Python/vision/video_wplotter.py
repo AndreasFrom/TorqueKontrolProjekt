@@ -15,8 +15,8 @@ def rotate(x, y):
 
 def main():
     # Load data
-    video_path = './output_files/2_drive_circle_0v75_s_r_0m7_warped_video.mp4'
-    csv_path = './output_files/2_drive_circle_0v75_s_r_0m7_warped_video.csv'
+    video_path = '.\vision\output_files\IMG_4416_warped_video.mp4'
+    csv_path = '.\vision\output_files\IMG_4416_marker_positions.csv'
 
     
     cap = cv2.VideoCapture(video_path)

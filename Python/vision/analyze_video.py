@@ -47,9 +47,12 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
         gray = clahe.apply(gray)
 
-        # Optional: a tiny bit of blur to reduce noise (careful not to blur too much)
-        gray = cv2.GaussianBlur(gray, (3, 3), 0)
-
+        # Add morphology to view though cable
+        kernel = np.ones((5, 5), np.uint8)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_ERODE, kernel)
 
         # Save debug frame
         if debug >= 3:
@@ -59,10 +62,7 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
                 cv2.imwrite(debug_path, gray)
                 print(f"Debug frame saved to {debug_path}")
 
-
-
-
-        num_iterations += 1
+            num_iterations += 1
 
         corners, ids, _ = detector.detectMarkers(gray)
         detected_ids = set(ids.flatten()) if ids is not None else set()
@@ -295,8 +295,8 @@ def main():
         parameters = cv2.aruco.DetectorParameters()
 
         parameters.adaptiveThreshWinSizeMin = 5  # Slightly larger window for better local contrast adaptation
-        parameters.adaptiveThreshWinSizeMax = 100  # Larger window to adapt to varying lighting
-        parameters.adaptiveThreshConstant = 20  # Increased value to handle distant markers
+        parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
+        parameters.adaptiveThreshConstant = 2  # Increased value to handle distant markers
 
         parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
         parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
@@ -309,7 +309,7 @@ def main():
         parameters.minOtsuStdDev = 1.5  # More tolerance to lighting variation
         parameters.perspectiveRemoveIgnoredMarginPerCell = 0.0  # Allows detection of markers at any angle
 
-        parameters.errorCorrectionRate = 1.0  # High error correction to detect even damaged markers
+        parameters.errorCorrectionRate = 0.25  # Low error correction 
         parameters.maxErroneousBitsInBorderRate = 0.8  # Allows detection even if some bits are noisy
 
         detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
