@@ -1,4 +1,4 @@
-#ifndef ICO_ALGRO_CPP
+#ifndef ICO_ALGO_CPP
 #define ICO_ALGO_CPP
 
 #include "ICO_algo.h"
