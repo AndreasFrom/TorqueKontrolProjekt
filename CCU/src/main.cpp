@@ -8,6 +8,7 @@
 #include "sdLogger.h"
 #include "i2c_master.h"
 #include "SimpleKalmanFilter.h"
+#include "kinematic.h"
 
 
 #define SEND_DATA_SERIAL false
@@ -40,12 +41,12 @@ float ki = 10.0;
 float kd = 0.01;
 uint8_t mode = 2;                      
 float setpoint = 0;                  
-float setpoint_radius = 2.0; 
+float setpoint_radius = 0.5; 
 
-int setpoint0 = 100; // left front
-int setpoint1 = 600; // right front
-int setpoint2 = 100; // left rear
-int setpoint3 = 600; // right rear
+// int setpoint0 = 711; // left front
+// int setpoint1 = 916.9; // right front
+// int setpoint2 = 582.8; // left rear
+// int setpoint3 = 821.5; // right rear
 
 // Create Kalman filters for each axis with appropriate parameters
 // Gyroscope: 0.07 °/s noise
@@ -58,7 +59,8 @@ SimpleKalmanFilter accelFilterX(0.01766, 1.0, 0.01);
 SimpleKalmanFilter accelFilterY(0.01766, 1.0, 0.01);
 SimpleKalmanFilter accelFilterZ(0.01766, 1.0, 0.01);
 
-
+Kinematic kinematic_model;
+Velocities_acker wheel_RPMs; // Struct to hold wheel velocities
 
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
@@ -77,7 +79,7 @@ void timerISR() {
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
 
         // Apply Kalman filtering
-        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z);
+        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
         float filteredAccelX = accelFilterX.updateEstimate(Oaccel.x);
         float filteredAccelY = accelFilterY.updateEstimate(Oaccel.y);
 
@@ -120,6 +122,8 @@ void setup() {
         while (1);
     }
     Serial.println("Setup complete!");
+    bmx160.setGyroRange(eGyroRange_500DPS); // Gyro range
+    bmx160.setAccelRange(eAccelRange_2G); // Accel range
 
     // Temp until send from commander works
  /*    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
@@ -173,10 +177,10 @@ void processClientMessage(String message) {
         client.println("ACK:START");
         logging = true;
         // Set all setpoints
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   setpoint);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   wheel_RPMs.v_left_front);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, wheel_RPMs.v_right_front);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, wheel_RPMs.v_left_rear);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, wheel_RPMs.v_right_rear);
         Serial.println("Logging started!");
 
     } else if (message == "STOP") {
@@ -223,13 +227,21 @@ void processClientMessage(String message) {
             }
         }
 
+        kinematic_model.getRpms_acker(setpoint, setpoint_radius, wheel_RPMs);
+        Serial.print("M0: "); Serial.println(wheel_RPMs.v_left_front);
+        Serial.print("M1: "); Serial.println(wheel_RPMs.v_right_front);
+        Serial.print("M2: "); Serial.println(wheel_RPMs.v_left_rear);
+        Serial.print("M3: "); Serial.println(wheel_RPMs.v_right_rear);
+
+
     } else if (message.startsWith("SETPOINT:")) {
         client.println("ACK:SETPOINT");
         setpoint = message.substring(9).toFloat();
         Serial.print("Setpoint modtaget: ");
         Serial.println(setpoint);
+
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + i, setpoint);
+            bool success = i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + i, 0);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
