@@ -1,5 +1,5 @@
 #ifndef ICO_ALGRO_CPP
-#define ICO_ALGRO_CPP
+#define ICO_ALGO_CPP
 
 #include "ICO_algo.h"
 
@@ -34,3 +34,5 @@ void ICOAlgo::resetICO()
     omega1_ = 0;
     prev_error_ = 0;
 }
+
+#endif  // ICO_ALGO_CPP

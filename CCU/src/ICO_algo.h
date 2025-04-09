@@ -1,5 +1,5 @@
-#ifndef ICO_ALGRO_H
-#define ICO_ALGRO_H
+#ifndef ICO_ALRO_H
+#define ICO_ALRO_H
 
 #include <Arduino.h>
 
@@ -22,4 +22,4 @@ private:
     double omega1_ = 0; // dynamically updated weight
 };
 
-#endif  // ICO_ALGRO_H
+#endif  // ICO_ALGO_H
