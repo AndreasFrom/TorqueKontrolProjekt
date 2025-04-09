@@ -77,7 +77,7 @@ void timerISR() {
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
 
         // Apply Kalman filtering
-        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z);
+        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
         float filteredAccelX = accelFilterX.updateEstimate(Oaccel.x);
         float filteredAccelY = accelFilterY.updateEstimate(Oaccel.y);
 
