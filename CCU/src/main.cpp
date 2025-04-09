@@ -19,6 +19,7 @@
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 WiFiClient client;
+ICO_ALGRO
 
 // SD card
 const int chipselect = 10;

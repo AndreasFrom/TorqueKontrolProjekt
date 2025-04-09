@@ -3,9 +3,9 @@
 
 #include <Arduino.h>
 
-class ICOAlgro {
+class ICOAlgo {
 public:
-    ICOAlgro(double input, double setpoint, double eta, double omega2 ,double sampleTime);
+    ICOAlgo(double input, double setpoint, double eta, double omega2 ,double sampleTime);
     double computeICOError(double input, double setpoint);
     double computeOmega1 (double input, double setpoint);
     double computeChange(double input, double setpoint);
