@@ -76,9 +76,9 @@ def plot_marker_data(csv_path, output_plot_path):
     plt.axis('equal')
     
     # Plot positions with moving average filter
-    moving_avg_x_positions = x_positions.rolling(window=window_size).mean()
-    moving_avg_y_positions = y_positions.rolling(window=window_size).mean()
-    plt.plot(moving_avg_x_positions, moving_avg_y_positions, label='Moving Average Position', color='orange')
+    #moving_avg_x_positions = x_positions.rolling(window=window_size).mean()
+    #moving_avg_y_positions = y_positions.rolling(window=window_size).mean()
+    plt.plot(label='Moving Average Position', color='orange')
     plt.legend()
     
     # Save plot
@@ -87,7 +87,7 @@ def plot_marker_data(csv_path, output_plot_path):
     print(f"Plots saved to {os.path.dirname(output_plot_path)}")
 
 if __name__ == "__main__":
-    input_folder = os.path.join(os.path.dirname(__file__), 'output_files')
+    input_folder = os.path.join(os.path.dirname(__file__), 'output_files_repaired')
     output_folder = os.path.join(os.path.dirname(__file__), 'output_plots')
     os.makedirs(output_folder, exist_ok=True)
     

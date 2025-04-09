@@ -296,7 +296,7 @@ def main():
 
         parameters.adaptiveThreshWinSizeMin = 5  # Slightly larger window for better local contrast adaptation
         parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
-        parameters.adaptiveThreshConstant = 2  # Increased value to handle distant markers
+        parameters.adaptiveThreshConstant = 3  # Increased value to handle distant markers
 
         parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
         parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
