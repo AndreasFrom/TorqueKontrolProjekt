@@ -5,15 +5,15 @@
 
 class ICOAlgro {
 public:
-    ICOAlgro(double IMU_T0, double IMU_T_1, double eta, double omega2 ,double sampleTime);
-    double computeICOError(double IMU_T0, double IMU_T_1);
-    double computeOmega1 (double IMU_T0, double IMU_T_1);
-    double computeDeltaTorque_Speed(double IMU_T0, double IMU_T_1);
+    ICOAlgro(double input, double setpoint, double eta, double omega2 ,double sampleTime);
+    double computeICOError(double input, double setpoint);
+    double computeOmega1 (double input, double setpoint);
+    double computeChange(double input, double setpoint);
     void resetICO();
 
 private:
-    double IMU_T0_;  // Current data from IMU
-    double IMU_T_1_; // Previous data from IMU
+    double input_;  // Current data from IMU
+    double setpoint_; // Previous data from IMU
     double eta_;     // Learning rate
     double omega2_ = 1;   // Scale for error
     double error_; // Error used in ICO
