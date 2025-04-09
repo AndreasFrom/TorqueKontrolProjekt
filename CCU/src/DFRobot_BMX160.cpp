@@ -119,11 +119,11 @@ void DFRobot_BMX160::defaultParamSettg(sBmx160Dev_t *dev)
 {
   // Initializing accel and gyro params with
   dev->gyroCfg.bw = BMX160_GYRO_BW_NORMAL_MODE;
-  dev->gyroCfg.odr = BMX160_GYRO_ODR_200HZ;
+  dev->gyroCfg.odr = BMX160_GYRO_ODR_400HZ;
   dev->gyroCfg.power = BMX160_GYRO_NORMAL_MODE;
   dev->gyroCfg.range = BMX160_GYRO_RANGE_500_DPS;
   dev->accelCfg.bw = BMX160_ACCEL_BW_NORMAL_AVG4;
-  dev->accelCfg.odr = BMX160_ACCEL_ODR_200HZ;
+  dev->accelCfg.odr = BMX160_ACCEL_ODR_800HZ;
   dev->accelCfg.power = BMX160_ACCEL_NORMAL_MODE;
   dev->accelCfg.range = BMX160_ACCEL_RANGE_2G;
   

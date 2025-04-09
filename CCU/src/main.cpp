@@ -42,10 +42,10 @@ uint8_t mode = 2;
 float setpoint = 0;                  
 float setpoint_radius = 2.0; 
 
-int setpoint0 = 142.2; // left front
-int setpoint1 = 183.4; // right front
-int setpoint2 = 116.6; // left rear
-int setpoint3 = 164.3; // right rear
+int setpoint0 = 284.4; // left front
+int setpoint1 = 366.8; // right front
+int setpoint2 = 233.1; // left rear
+int setpoint3 = 328.6; // right rear
 
 // Create Kalman filters for each axis with appropriate parameters
 // Gyroscope: 0.07 °/s noise
