@@ -34,7 +34,3 @@ void ICOAlgro::resetICO()
     omega1_ = 0;
     prev_error_ = 0;
 }
-
-// IMU_0 -> input
-// computeDeltaTorque_Speed -> compute_change
-//

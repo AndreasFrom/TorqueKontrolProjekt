@@ -9,7 +9,7 @@
 #include "i2c_master.h"
 #include "SimpleKalmanFilter.h"
 #include "kinematic.h"
-#include "ICO"
+#include "ICO_algro.h"
 
 
 #define SEND_DATA_SERIAL false
