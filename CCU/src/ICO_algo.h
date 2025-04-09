@@ -5,7 +5,7 @@
 
 class ICOAlgo {
 public:
-    ICOAlgo(double input, double setpoint, double eta, double omega2 ,double sampleTime);
+    ICOAlgo(double eta, double omega2 ,double sampleTime);
     double computeICOError(double input, double setpoint);
     double computeOmega1 (double input, double setpoint);
     double computeChange(double input, double setpoint);

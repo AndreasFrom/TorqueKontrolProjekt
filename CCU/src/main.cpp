@@ -9,7 +9,7 @@
 #include "i2c_master.h"
 #include "SimpleKalmanFilter.h"
 #include "kinematic.h"
-#include "ICO_algro.h"
+#include "ICO_algo.h"
 
 
 #define SEND_DATA_SERIAL false
@@ -19,7 +19,8 @@
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 WiFiClient client;
-ICO_ALGRO
+ICOAlgo ico_yaw(1,0.1,0.1)
+ICOAlgo ico_move(1,0.1,0.1);
 
 // SD card
 const int chipselect = 10;
@@ -32,7 +33,7 @@ I2CMaster i2cMaster;
 // IMU
 DFRobot_BMX160 bmx160;
 
-bool logging = false; // Flag til logging
+bool is_active = false; // Flag til logging
 const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
 
 double start_time = 0;
@@ -63,13 +64,14 @@ SimpleKalmanFilter accelFilterZ(0.01766, 1.0, 0.01);
 
 Kinematic kinematic_model;
 Velocities_acker wheel_RPMs; // Struct to hold wheel velocities
+Velocities_acker Wheel_velocities; // Struct to hold wheel velocities
 
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
 void processClientMessage(String message);
 
 void timerISR() {
-    if(logging){
+    if(is_active){
         //Perform measurements and add to queue
         unsigned long timestamp = millis();    
 
@@ -81,9 +83,24 @@ void timerISR() {
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
 
         // Apply Kalman filtering
-        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
-        float filteredAccelX = accelFilterX.updateEstimate(Oaccel.x);
-        float filteredAccelY = accelFilterY.updateEstimate(Oaccel.y);
+        float filtered_gyro_z = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
+        float filtered_accel_x = accelFilterX.updateEstimate(Oaccel.x);
+        float filtered_accel_y = accelFilterY.updateEstimate(Oaccel.y);
+
+        double actual_velocity += filtered_accel_y * 0.01; // Update actual velocity using sample time
+
+        // If setpoint is velocity
+        double setpoint_yaw = setpoint / setpoint_radius
+        
+        double updated_yaw = ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw);
+        double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
+
+        kinematic_model.getVelocities_acker(updated_velocity, updated_yaw,Wheel_velocities);
+
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
 
         MUData MU0;
         MUData MU1;
@@ -97,7 +114,7 @@ void timerISR() {
         sdLogger.addData({
             timestamp, 
             mode, setpoint, setpoint_radius, 
-            filteredAccelX, filteredAccelY, filteredGyroZ,
+            filtered_accel_x, filtered_accel_y, filtered_gyro_z,
             kp, ki, kd,
             MU0, MU1, MU2, MU3
         });
@@ -148,7 +165,7 @@ void loop() {
             handleClientCommunication(client);
         }
         client.stop();
-        logging = false; // Reset logging flag when client disconnects
+        is_active = false; // Reset is_active flag when client disconnects
         Serial.println("Client disconnected.");
     }
 /*     int time = millis() - start_time;
@@ -177,7 +194,7 @@ void processClientMessage(String message) {
 
     if (message == "START") {
         client.println("ACK:START");
-        logging = true;
+        is_active = true;
         // Set all setpoints
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   wheel_RPMs.v_left_front);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, wheel_RPMs.v_right_front);
@@ -187,7 +204,7 @@ void processClientMessage(String message) {
 
     } else if (message == "STOP") {
         client.println("ACK:STOP");
-        logging = false;
+        is_active = false;
         sdLogger.close();
         // Reset all setpoints
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   0);
@@ -228,12 +245,6 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
-
-        kinematic_model.getRpms_acker(setpoint, setpoint_radius, wheel_RPMs);
-        Serial.print("M0: "); Serial.println(wheel_RPMs.v_left_front);
-        Serial.print("M1: "); Serial.println(wheel_RPMs.v_right_front);
-        Serial.print("M2: "); Serial.println(wheel_RPMs.v_left_rear);
-        Serial.print("M3: "); Serial.println(wheel_RPMs.v_right_rear);
 
 
     } else if (message.startsWith("SETPOINT:")) {

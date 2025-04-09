@@ -3,8 +3,8 @@
 
 #include "ICO_algo.h"
 
-ICOAlgo::ICOAlgo(double input, double setpoint, double eta, double omega2, double sampleTime)
-: input_(input), setpoint_(setpoint), eta_(eta), omega2_(omega2), sampleTime_(sampleTime), error_(0), prev_error_(0), omega1_(0) { 
+ICOAlgo::ICOAlgo(double eta, double omega2, double sampleTime)
+: eta_(eta), omega2_(omega2), sampleTime_(sampleTime), error_(0), prev_error_(0), omega1_(0) { 
 }
 
 
