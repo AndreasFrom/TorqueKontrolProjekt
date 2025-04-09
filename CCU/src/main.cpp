@@ -19,7 +19,7 @@
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(1,0.1,0.1)
+ICOAlgo ico_yaw(1,0.1,0.1);
 ICOAlgo ico_move(1,0.1,0.1);
 
 // SD card
@@ -87,10 +87,10 @@ void timerISR() {
         float filtered_accel_x = accelFilterX.updateEstimate(Oaccel.x);
         float filtered_accel_y = accelFilterY.updateEstimate(Oaccel.y);
 
-        double actual_velocity += filtered_accel_y * 0.01; // Update actual velocity using sample time
+        double actual_velocity = actual_velocity + filtered_accel_y * 0.01; // Update actual velocity using sample time
 
         // If setpoint is velocity
-        double setpoint_yaw = setpoint / setpoint_radius
+        double setpoint_yaw = setpoint / setpoint_radius;
         
         double updated_yaw = ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw);
         double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);

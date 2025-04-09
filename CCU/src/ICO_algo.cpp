@@ -34,3 +34,4 @@ void ICOAlgo::resetICO()
     omega1_ = 0;
     prev_error_ = 0;
 }
+#endif  // ICO_ALGRO_H
