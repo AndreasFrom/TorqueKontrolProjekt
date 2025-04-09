@@ -42,10 +42,10 @@ uint8_t mode = 2;
 float setpoint = 0;                  
 float setpoint_radius = 2.0; 
 
-int setpoint0 = 100; // left front
-int setpoint1 = 600; // right front
-int setpoint2 = 100; // left rear
-int setpoint3 = 600; // right rear
+int setpoint0 = 284.4; // left front
+int setpoint1 = 366.8; // right front
+int setpoint2 = 233.1; // left rear
+int setpoint3 = 328.6; // right rear
 
 // Create Kalman filters for each axis with appropriate parameters
 // Gyroscope: 0.07 °/s noise
@@ -77,7 +77,7 @@ void timerISR() {
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
 
         // Apply Kalman filtering
-        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z);
+        float filteredGyroZ = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
         float filteredAccelX = accelFilterX.updateEstimate(Oaccel.x);
         float filteredAccelY = accelFilterY.updateEstimate(Oaccel.y);
 
@@ -120,6 +120,8 @@ void setup() {
         while (1);
     }
     Serial.println("Setup complete!");
+    bmx160.setGyroRange(eGyroRange_500DPS); // Gyro range
+    bmx160.setAccelRange(eAccelRange_2G); // Accel range
 
     // Temp until send from commander works
  /*    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
@@ -173,10 +175,10 @@ void processClientMessage(String message) {
         client.println("ACK:START");
         logging = true;
         // Set all setpoints
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   setpoint);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   setpoint0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint1);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3);
         Serial.println("Logging started!");
 
     } else if (message == "STOP") {
