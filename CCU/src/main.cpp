@@ -120,6 +120,8 @@ void setup() {
         while (1);
     }
     Serial.println("Setup complete!");
+    bmx160.setGyroRange(eGyroRange_500DPS); // Gyro range
+    bmx160.setAccelRange(eAccelRange_2G); // Accel range
 
     // Temp until send from commander works
  /*    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
