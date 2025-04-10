@@ -17,6 +17,8 @@ struct dataBlock {
     float acc_y;                // IMU Acceleration y
     float gyro_z;               // IMU Gyro z
 
+    float actual_velocity;      // Actual velocity
+
     float Kp;                   // PID Kp
     float Ki;                   // PID Ki
     float Kd;                   // PID Kd
@@ -30,6 +32,9 @@ struct dataBlock {
     float error_velocity;
     float updated_yaw;
     float updated_velocity;
+
+    float omega_yaw;
+    float omega_move;
 };
 
 class SDLogger {
@@ -42,8 +47,7 @@ private:
     File _dataFile;
     const char* _filename;
     bool _fileOpen = false;
-    String _dataHeader = 
-        ("timestamp, mode, setpoint, setpoint_radius, acc_x, acc_y, gyro_z, Kp, Ki, Kd, MU0setpoint, MU0value, MU0current, MU1setpoint, MU1value, MU1current, MU2setpoint, MU2value, MU2current, MU3setpoint, MU3value, MU3current");
+    String _dataHeader = ("timestamp, mode, setpoint, setpoint_radius, acc_x, acc_y, gyro_z, actual_velocity, Kp, Ki, Kd, MU0setpoint, MU0value, MU0current, MU1setpoint, MU1value, MU1current, MU2setpoint, MU2value, MU2current, MU3setpoint, MU3value, MU3current, error_yaw, error_velocity, updated_yaw, updated_velocity, omega_yaw, omega_move");
 };
 
 #endif

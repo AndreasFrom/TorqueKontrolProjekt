@@ -7,11 +7,15 @@ ICOAlgo::ICOAlgo(double eta, double omega2, double sampleTime)
 : eta_(eta), omega2_(omega2), sampleTime_(sampleTime), error_(0), prev_error_(0), omega1_(0) { 
 }
 
+double ICOAlgo::getOmega1(void)
+{
+    return omega1_;
+}
 
 double ICOAlgo::computeICOError(double input, double setpoint)
 {
     prev_error_ = error_;
-    error_ = (input - setpoint);
+    error_ = (setpoint - input);
     return error_;
 }
 
@@ -26,7 +30,8 @@ double ICOAlgo::computeOmega1(double input, double setpoint)
 
 double ICOAlgo::computeChange(double input, double setpoint)
 {
-    return input * (computeOmega1(input,setpoint)) + (error_ * omega2_);
+    omega1_ = computeOmega1(input, setpoint);
+    return input * (omega1_) + (error_ * omega2_);
 }
 
 void ICOAlgo::resetICO()

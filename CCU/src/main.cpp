@@ -20,8 +20,8 @@
 //WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(1,1,0.01);
-ICOAlgo ico_move(1,1,0.01);
+ICOAlgo ico_yaw(0.0001,1,0.01);
+ICOAlgo ico_move(0.0001,1,0.01);
 
 // SD card
 const int chipselect = 10;
@@ -46,6 +46,8 @@ float kd = 0.01;
 uint8_t mode = 2;                      
 float setpoint = 0;                  
 float setpoint_radius = 0.5; 
+
+double actual_velocity = 0; // Initialize actual velocity
 
 // int setpoint0 = 711; // left front
 // int setpoint1 = 916.9; // right front
@@ -99,7 +101,8 @@ void timerISR() {
         Serial.print("Filtered Accel Y: "); Serial.print(filtered_accel_y); Serial.println(" m/s²");
         #endif
 
-        double actual_velocity = actual_velocity + filtered_accel_y * 0.01; // Update actual velocity using sample time
+        
+        actual_velocity += filtered_accel_y * (1.0 / SAMPLE_FREQ); // Integrate acceleration over time
 
         // If setpoint is velocity
         double setpoint_yaw = setpoint / setpoint_radius;
@@ -112,8 +115,8 @@ void timerISR() {
         
         double error_yaw = setpoint_yaw - filtered_gyro_z;
         double error_velocity = setpoint - actual_velocity;
-        double updated_yaw = abs(ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw));
-        double updated_velocity = abs(ico_move.computeChange(actual_velocity, setpoint));
+        double updated_yaw = ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw) * -1;
+        double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
@@ -148,10 +151,12 @@ void timerISR() {
             timestamp, 
             mode, setpoint, setpoint_radius, 
             filtered_accel_x, filtered_accel_y, filtered_gyro_z,
+            actual_velocity,
             kp, ki, kd,
             MU0, MU1, MU2, MU3,
             error_yaw, error_velocity,
-            updated_yaw, updated_velocity
+            updated_yaw, updated_velocity,
+            ico_yaw.getOmega1(), ico_move.getOmega1()
         });
     }
 }
