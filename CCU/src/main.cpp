@@ -115,15 +115,15 @@ void timerISR() {
         
         double error_yaw = setpoint_yaw - filtered_gyro_z;
         double error_velocity = setpoint - actual_velocity;
-        double updated_yaw = ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw) * -1;
-        double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
+        double updated_yaw = setpoint_yaw + ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw);
+        // double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
         Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
         #endif
 
-        kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw,Wheel_velocities);
+        kinematic_model.getVelocities_acker_omega(setpoint, updated_yaw,Wheel_velocities);
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Wheel Velocities: ");
