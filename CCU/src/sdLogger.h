@@ -25,6 +25,11 @@ struct dataBlock {
     MUData MU1;                 // Data from MU
     MUData MU2;                 // Data from MU
     MUData MU3;                 // Data from MU
+
+    float error_yaw;
+    float error_velocity;
+    float updated_yaw;
+    float updated_velocity;
 };
 
 class SDLogger {

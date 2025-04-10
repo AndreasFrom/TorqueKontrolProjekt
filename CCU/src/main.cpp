@@ -10,17 +10,18 @@
 #include "SimpleKalmanFilter.h"
 #include "kinematic.h"
 #include "ICO_algo.h"
+#include "math.h"
 
 
 #define SEND_DATA_SERIAL false
-
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
-WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
+//WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
+WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(1,0.1,0.1);
-ICOAlgo ico_move(1,0.1,0.1);
+ICOAlgo ico_yaw(1,1,0.01);
+ICOAlgo ico_move(1,1,0.01);
 
 // SD card
 const int chipselect = 10;
@@ -73,7 +74,12 @@ void processClientMessage(String message);
 void timerISR() {
     if(is_active){
         //Perform measurements and add to queue
-        unsigned long timestamp = millis();    
+        unsigned long timestamp = millis();   
+
+        #ifdef SEND_DATA_CONTROL_SERIAL
+        Serial.print("Timestamp: "); Serial.print(timestamp); Serial.println(" ms, ");
+        #endif
+        
 
         sBmx160SensorData_t Ogyro = {0, 0, 0};  
         sBmx160SensorData_t Oaccel = {0, 0, 0}; 
@@ -86,16 +92,43 @@ void timerISR() {
         float filtered_gyro_z = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
         float filtered_accel_x = accelFilterX.updateEstimate(Oaccel.x);
         float filtered_accel_y = accelFilterY.updateEstimate(Oaccel.y);
+        
+        #ifdef SEND_DATA_CONTROL_SERIAL
+        Serial.print("Filtered Gyro Z: "); Serial.print(filtered_gyro_z); Serial.println(" °/s, ");
+        Serial.print("Filtered Accel X: "); Serial.print(filtered_accel_x); Serial.println(" m/s², ");
+        Serial.print("Filtered Accel Y: "); Serial.print(filtered_accel_y); Serial.println(" m/s²");
+        #endif
 
         double actual_velocity = actual_velocity + filtered_accel_y * 0.01; // Update actual velocity using sample time
 
         // If setpoint is velocity
         double setpoint_yaw = setpoint / setpoint_radius;
-        
-        double updated_yaw = ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw);
-        double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
 
-        kinematic_model.getVelocities_acker(updated_velocity, updated_yaw,Wheel_velocities);
+        #ifdef SEND_DATA_CONTROL_SERIAL
+        Serial.print("Setpoint: "); Serial.print(setpoint); Serial.println(" m/s, ");
+        Serial.print("Setpoint Yaw: "); Serial.print(setpoint_yaw); Serial.println(" deg/s, ");
+        Serial.print("Setpoint Radius: "); Serial.print(setpoint_radius); Serial.println(" m");
+        #endif
+        
+        double error_yaw = setpoint_yaw - filtered_gyro_z;
+        double error_velocity = setpoint - actual_velocity;
+        double updated_yaw = abs(ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw));
+        double updated_velocity = abs(ico_move.computeChange(actual_velocity, setpoint));
+
+        #ifdef SEND_DATA_CONTROL_SERIAL
+        Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
+        Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
+        #endif
+
+        kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw,Wheel_velocities);
+
+        #ifdef SEND_DATA_CONTROL_SERIAL
+        Serial.print("Wheel Velocities: ");
+        Serial.print("Left Front: "); Serial.print(Wheel_velocities.v_left_front); Serial.println(" m/s, ");
+        Serial.print("Right Front: "); Serial.print(Wheel_velocities.v_right_front); Serial.println(" m/s, ");
+        Serial.print("Left Rear: "); Serial.print(Wheel_velocities.v_left_rear); Serial.println(" m/s, ");
+        Serial.print("Right Rear: "); Serial.print(Wheel_velocities.v_right_rear); Serial.println(" m/s");
+        #endif
 
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
@@ -116,7 +149,9 @@ void timerISR() {
             mode, setpoint, setpoint_radius, 
             filtered_accel_x, filtered_accel_y, filtered_gyro_z,
             kp, ki, kd,
-            MU0, MU1, MU2, MU3
+            MU0, MU1, MU2, MU3,
+            error_yaw, error_velocity,
+            updated_yaw, updated_velocity
         });
     }
 }

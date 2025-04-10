@@ -49,7 +49,11 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.MU2.current_recv) + ", " +
             String(data.MU3.setpoint_recv) + ", " +
             String(data.MU3.value_recv) + ", " +
-            String(data.MU3.current_recv);
+            String(data.MU3.current_recv) + ", " +
+            String(data.error_yaw) + ", " +
+            String(data.error_velocity) + ", " +
+            String(data.updated_yaw) + ", " +
+            String(data.updated_velocity);
         _dataFile.println(line);
         //Serial.println(line);
     }else{
