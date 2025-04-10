@@ -6,6 +6,9 @@ def detect_spikes_and_repair(csv_path, output_nan_path, output_interpolated_path
     # Load data
     df = pd.read_csv(csv_path)
 
+    # Flip Y-axis
+    df["Y Position (m)"] = df["Y Position (m)"].max() - df["Y Position (m)"]
+
     # Columns to check for spikes
     columns_to_check = ["X Position (m)", "Y Position (m)", "Speed (m/s)", "Distance from Circle (m)"]
 
@@ -30,6 +33,7 @@ def detect_spikes_and_repair(csv_path, output_nan_path, output_interpolated_path
 
     print(f"Saved NaN version to: {output_nan_path}")
     print(f"Saved interpolated version to: {output_interpolated_path}")
+
 
 if __name__ == "__main__":
     input_folder = os.path.join(os.path.dirname(__file__), 'output_files')

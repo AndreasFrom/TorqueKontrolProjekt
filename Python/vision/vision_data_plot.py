@@ -39,6 +39,7 @@ def plot_marker_data(csv_path, output_plot_path):
     # Save
     fig_pos_time.tight_layout()
     fig_pos_time.savefig(output_plot_path.replace('.png', '_position.png'))
+    plt.close(fig_pos_time)
     
     # Create speed plot
     fig_speed, axes = plt.subplots(2, 1, figsize=(10, 4))
@@ -64,17 +65,26 @@ def plot_marker_data(csv_path, output_plot_path):
     # Save
     fig_speed.tight_layout()
     fig_speed.savefig(output_plot_path.replace('.png', '_speed.png'))
+    plt.close(fig_pos_time)
+
     
     # Plot positions
     plt.figure(figsize=(6, 6))  # Set figure size to ensure a square plot
     plt.plot(x_positions, y_positions, label='Position', color='blue')
+    
+    # Add a vector arrow to indicate the starting direction and location using the first few points
+    num_points = 5  # Number of points to calculate the average direction
+    start_x = x_positions.iloc[0]
+    start_y = y_positions.iloc[0]
+    avg_dx = x_positions.iloc[1:num_points].mean() - start_x
+    avg_dy = y_positions.iloc[1:num_points].mean() - start_y
+    plt.quiver(start_x, start_y, avg_dx, avg_dy, angles='xy', scale_units='xy', scale=1, color='red', label='Start Direction')
     plt.xlabel("X Position (m)")
     plt.ylabel("Y Position (m)")
     plt.title("Marker 10 Position Plot")
     plt.legend()
     plt.grid()
     plt.axis('equal')
-    
     # Plot positions with moving average filter
     #moving_avg_x_positions = x_positions.rolling(window=window_size).mean()
     #moving_avg_y_positions = y_positions.rolling(window=window_size).mean()
@@ -84,6 +94,7 @@ def plot_marker_data(csv_path, output_plot_path):
     # Save plot
     plt.tight_layout()
     plt.savefig(output_plot_path.replace('.png', '_trajectory.png'))
+    plt.close()  
     print(f"Plots saved to {os.path.dirname(output_plot_path)}")
 
 if __name__ == "__main__":
