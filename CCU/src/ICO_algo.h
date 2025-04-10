@@ -18,7 +18,7 @@ private:
     double eta_;     // Learning rate
     double omega2_ = 1;   // Scale for error
     double error_; // Error used in ICO
-    double prev_error_ = 1;   // Previous error for derivative term
+    double prev_error_ = 0;   // Previous error for derivative term
     double sampleTime_;   // Sample time for ICO computation
     double omega1_ = 0; // dynamically updated weight
 };
