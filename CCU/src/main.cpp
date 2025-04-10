@@ -117,6 +117,7 @@ void timerISR() {
         double error_velocity = setpoint - actual_velocity;
         double updated_yaw = setpoint_yaw + ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw);
         // double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
+        double updated_velocity = 0;
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
