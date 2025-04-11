@@ -17,10 +17,10 @@
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
-//WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
-WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
+WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
+//WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(0.0001,1,0.01);
+ICOAlgo ico_yaw(0.0001,2,0.01);
 ICOAlgo ico_move(0.0001,1,0.01);
 
 // SD card
@@ -105,7 +105,7 @@ void timerISR() {
         actual_velocity += filtered_accel_y * (1.0 / SAMPLE_FREQ); // Integrate acceleration over time
 
         // If setpoint is velocity
-        double setpoint_yaw = setpoint / setpoint_radius;
+        double setpoint_yaw_degs = (setpoint / setpoint_radius) * 180/PI;
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Setpoint: "); Serial.print(setpoint); Serial.println(" m/s, ");
@@ -113,17 +113,21 @@ void timerISR() {
         Serial.print("Setpoint Radius: "); Serial.print(setpoint_radius); Serial.println(" m");
         #endif
         
-        double error_yaw = setpoint_yaw - filtered_gyro_z;
+        //double error_yaw = setpoint_yaw - filtered_gyro_z; // Used for datalogging
+        double error_yaw = ico_yaw.getError(); // Used for datalogging
         double error_velocity = setpoint - actual_velocity;
-        double updated_yaw = ico_yaw.computeChange(filtered_gyro_z, setpoint_yaw) * -1;
-        double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
+
+        double updated_yaw = ico_yaw.computeChange(constrain(filtered_gyro_z, 0, 500), setpoint_yaw_degs);
+        updated_yaw = constrain(updated_yaw, 20, 230); // Constrain updated_yaw between 0 and 230 deg/s
+        //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
+        double updated_velocity = setpoint; 
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
         Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
         #endif
 
-        kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw,Wheel_velocities);
+        kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Wheel Velocities: ");

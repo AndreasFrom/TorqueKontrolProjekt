@@ -3,40 +3,41 @@
 
 #include "ICO_algo.h"
 
-ICOAlgo::ICOAlgo(double eta, double omega2, double sampleTime)
-: eta_(eta), omega2_(omega2), sampleTime_(sampleTime), error_(0), prev_error_(0), omega1_(0) { 
+ICOAlgo::ICOAlgo(double eta, double omega0, double sampleTime)
+: eta_(eta), omega0_(omega0), sampleTime_(sampleTime), error_(0), prev_error_(0), omega1_(0) { 
 }
 
-double ICOAlgo::getOmega1(void)
-{
+double ICOAlgo::getOmega1(void) {
     return omega1_;
 }
 
-double ICOAlgo::computeICOError(double input, double setpoint)
-{
-    prev_error_ = error_;
-    error_ = (setpoint - input);
+double ICOAlgo::getError() {
     return error_;
 }
 
-double ICOAlgo::computeOmega1(double input, double setpoint)
-{
-    computeICOError(input, setpoint);
-    double derivativeError = (error_ - prev_error_) / sampleTime_; 
-    omega1_ = omega1_ + (derivativeError * input * eta_);
-    return omega1_;
+double ICOAlgo::computeChange(double input, double setpoint) {
+    // Calculate S0 from time delay of one sample. (Reflex)
+    S0_current_ = S0_next_; // Store previous S0 value
+    S0_next_ = input; // Update S0 with current input value
+
+    // Calculate X0 which is the error
+    prev_error_ = error_; // Store previous error value
+    error_ = setpoint - S0_current_; // Calculate current error
+
+    // Calculate derivative of error
+    double derivativeError = (error_ - prev_error_) / sampleTime_; // Calculate derivative of error
+
+    // Calculate change of omega1
+    omega1_ += (input * eta_ * derivativeError);
+
+    // Calculate output
+    return (input * omega1_) + (error_ * omega0_); //Reflex + Prediction
 }
 
-
-double ICOAlgo::computeChange(double input, double setpoint)
-{
-    omega1_ = computeOmega1(input, setpoint);
-    return input * (omega1_) + (error_ * omega2_);
-}
-
-void ICOAlgo::resetICO()
-{
+void ICOAlgo::resetICO() {
     omega1_ = 0;
     prev_error_ = 0;
 }
+
+
 #endif  // ICO_ALGRO_H

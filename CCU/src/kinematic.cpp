@@ -24,6 +24,6 @@ void Kinematic::getRpms_acker(float v_set, float r_set, Velocities_acker & veloc
 }
 
 void Kinematic::getVelocities_acker_omega(float v_set, float omega_set, Velocities_acker &velocities) {
-    float r_cal = ( v_set / omega_set );
+    float r_cal = ( v_set / (omega_set * PI / 180.0) ); //Convert from deg/s to rad/s
     getVelocities_acker(v_set, r_cal, velocities);
 }
