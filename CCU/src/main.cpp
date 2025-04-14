@@ -14,14 +14,16 @@
 
 
 #define SEND_DATA_SERIAL false
+
+const double SAMPLE_FREQ = 75.0; //100Hz, 10ms sample time
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
 WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 //WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(0.000001,2,0.01);
-ICOAlgo ico_move(0.0001,1,0.01);
+ICOAlgo ico_yaw(0.0001,0.2,0.4,1/SAMPLE_FREQ);
+ICOAlgo ico_move(0.0001,1,1,1/SAMPLE_FREQ);
 
 // SD card
 const int chipselect = 10;
@@ -35,7 +37,7 @@ I2CMaster i2cMaster;
 DFRobot_BMX160 bmx160;
 
 bool is_active = false; // Flag til logging
-const double SAMPLE_FREQ = 100.0; //100Hz, 10ms sample time
+
 
 double start_time = 0;
 
@@ -118,6 +120,7 @@ void timerISR() {
         double error_velocity = setpoint - actual_velocity;
 
         double updated_yaw = ico_yaw.computeChange(constrain(filtered_gyro_z, 0, 500), setpoint_yaw_degs);
+        updated_yaw = abs(updated_yaw); // Ensure updated_yaw is positive
         updated_yaw = constrain(updated_yaw, 20, 230); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
         double updated_velocity = setpoint; 

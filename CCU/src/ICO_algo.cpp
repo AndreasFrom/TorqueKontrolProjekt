@@ -3,8 +3,8 @@
 
 #include "ICO_algo.h"
 
-ICOAlgo::ICOAlgo(double eta, double omega0, double sampleTime)
-: eta_(eta), omega0_(omega0), sampleTime_(sampleTime), error_(0), prev_error_(0), omega1_(0) { 
+ICOAlgo::ICOAlgo(double eta, double omega0, double omega1, double sampleTime)
+: eta_(eta), omega0_(omega0), omega1_(omega1), sampleTime_(sampleTime), error_(0), prev_error_(0) { 
 }
 
 double ICOAlgo::getOmega1(void) {
