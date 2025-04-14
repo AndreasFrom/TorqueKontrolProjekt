@@ -5,7 +5,12 @@
 
 class ICOAlgo {
 public:
-    ICOAlgo(double eta, double omega2 ,double sampleTime);
+    /// @brief 
+    /// @param eta 
+    /// @param omega0 
+    /// @param omega1 
+    /// @param sampleTime 
+    ICOAlgo(double eta, double omega0, double omega1 ,double sampleTime);
     double computeChange(double input, double setpoint);
 
     double getOmega1();
