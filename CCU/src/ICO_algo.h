@@ -9,7 +9,9 @@ public:
     double computeChange(double input, double setpoint);
 
     double getOmega1();
+    double getOmega0();
     double getError();
+    double getEta();
 
     void resetICO();
 

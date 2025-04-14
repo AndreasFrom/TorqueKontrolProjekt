@@ -11,8 +11,18 @@ double ICOAlgo::getOmega1(void) {
     return omega1_;
 }
 
+double ICOAlgo::getOmega0()
+{
+    return omega0_;
+}
+
 double ICOAlgo::getError() {
     return error_;
+}
+
+double ICOAlgo::getEta()
+{
+    return eta_;
 }
 
 double ICOAlgo::computeChange(double input, double setpoint) {
