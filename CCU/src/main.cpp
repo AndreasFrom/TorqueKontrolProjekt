@@ -19,10 +19,15 @@ const double SAMPLE_FREQ = 75.0; //100Hz, 10ms sample time
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
-WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
-//WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
+//WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
+WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(0.0001,0.2,0.4,1/SAMPLE_FREQ);
+
+// ICO algorithms
+double omega0 = 0.2;
+double omega1 = 0.4;
+
+ICOAlgo ico_yaw(0.0001,omega0,omega1,1/SAMPLE_FREQ);
 ICOAlgo ico_move(0.0001,1,1,1/SAMPLE_FREQ);
 
 // SD card
@@ -121,7 +126,7 @@ void timerISR() {
 
         double updated_yaw = ico_yaw.computeChange(constrain(filtered_gyro_z, 0, 500), setpoint_yaw_degs);
         updated_yaw = abs(updated_yaw); // Ensure updated_yaw is positive
-        updated_yaw = constrain(updated_yaw, 20, 230); // Constrain updated_yaw between 0 and 230 deg/s
+        updated_yaw = constrain(updated_yaw, 0, 230); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
         double updated_velocity = setpoint; 
 
@@ -306,5 +311,25 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
+    } else if (message.startsWith("ICO:")){
+        client.println("ACK:ICO");
+        message.remove(0, 4);
+        int comma1 = message.indexOf(',');
+        int comma2 = message.indexOf(',', comma1 + 1);
+
+        if (comma1 == -1 || comma2 == -1) {
+            Serial.println("Fejl: Forkert ICO-format");
+            return;
+        }
+
+        omega0 = message.substring(0, comma1).toFloat();
+        omega1 = message.substring(comma1 + 1, comma2).toFloat();
+
+        Serial.print("Parsed ICO: ");
+        Serial.print("omega0: "); Serial.print(omega0);
+        Serial.print(" omega1: "); Serial.println(omega1);
+
+        ico_yaw.updateOmegaValues(omega0, omega1);
+        ico_yaw.resetICO(); 
     }
 }

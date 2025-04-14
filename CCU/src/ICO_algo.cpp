@@ -44,8 +44,13 @@ double ICOAlgo::computeChange(double input, double setpoint) {
     return (input * omega1_) + (error_ * omega0_); //Reflex + Prediction
 }
 
+void ICOAlgo::updateOmegaValues(double omega0, double omega1)
+{
+    omega0_ = omega0;
+    omega1_ = omega1;
+}
+
 void ICOAlgo::resetICO() {
-    omega1_ = 0;
     prev_error_ = 0;
 }
 

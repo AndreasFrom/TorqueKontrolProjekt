@@ -13,6 +13,8 @@ public:
     ICOAlgo(double eta, double omega0, double omega1 ,double sampleTime);
     double computeChange(double input, double setpoint);
 
+    void updateOmegaValues(double omega0, double omega1);
+
     double getOmega1();
     double getOmega0();
     double getError();

@@ -8,7 +8,7 @@ from datetime import datetime
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
 #TCP_IP = "192.168.137.163"
-TCP_IP = "192.168.137.129"
+TCP_IP = "192.168.137.151"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -73,6 +73,16 @@ def send_pid_setpoint():
         send_command(f"PID:{kp},{ki},{kd},{setpoint},{mode}")
     except ValueError:
         print("Error: Invalid input for PID parameters or setpoint")
+
+
+def send_ico():
+    """Send ICO command to the Arduino."""
+    try:
+        omega0 = float(entry_omega0.get())
+        omega1 = float(entry_omega1.get())
+        send_command(f"ICO:{omega0},{omega1}")
+    except ValueError:
+        print("Error: Invalid input for ICO parameters")
 
 # Function to send only the setpoint
 def send_setpoint_only():
@@ -223,12 +233,31 @@ button_send_pid.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="w")
 button_send_setpoint = tk.Button(root, text="Send Setpoint Only", command=send_setpoint_only)
 button_send_setpoint.grid(row=6, column=1, columnspan=2, padx=10, pady=10, sticky="w")
 
+# UI elements omega 0 and omega 1
+label_omega0 = tk.Label(root, text="Omega 0:")
+label_omega0.grid(row=7, column=0, padx=10, pady=5, sticky="w")
+entry_omega0 = tk.Entry(root)
+entry_omega0.grid(row=7, column=1, padx=10, pady=5, sticky="w")
+entry_omega0.insert(0, "0.5")
+
+label_omega1 = tk.Label(root, text="Omega 1:")
+label_omega1.grid(row=8, column=0, padx=10, pady=5, sticky="w")
+entry_omega1 = tk.Entry(root)
+entry_omega1.grid(row=8, column=1, padx=10, pady=5, sticky="w")
+entry_omega1.insert(0, "0.9")
+
+# button to send ICO command
+button_send_ico = tk.Button(root, text="Send ICO", command=send_ico)
+button_send_ico.grid(row=9, column=1, padx=10, pady=5, sticky="w")
+
 # UI Elements for logging
 button_start = tk.Button(root, text="Start", command=start_logging)
-button_start.grid(row=7, column=0, padx=10, pady=5, sticky="w")
+button_start.grid(row=10, column=0, padx=10, pady=5, sticky="w")
 
 button_stop = tk.Button(root, text="Stop", command=stop_logging)
-button_stop.grid(row=8, column=0, padx=10, pady=5, sticky="w")
+button_stop.grid(row=11, column=0, padx=10, pady=5, sticky="w")
+
+
 
 # Text box for logging
 text_box = tk.Text(root, height=10, width=50)
