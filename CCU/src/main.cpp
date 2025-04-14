@@ -20,7 +20,7 @@
 WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 //WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
-ICOAlgo ico_yaw(0.0001,2,0.01);
+ICOAlgo ico_yaw(0.000001,2,0.01);
 ICOAlgo ico_move(0.0001,1,0.01);
 
 // SD card
