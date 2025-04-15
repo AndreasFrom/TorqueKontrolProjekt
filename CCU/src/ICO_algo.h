@@ -19,6 +19,7 @@ public:
     double getOmega0();
     double getError();
     double getEta();
+    void  setEta(double eta);
 
     void resetICO();
 

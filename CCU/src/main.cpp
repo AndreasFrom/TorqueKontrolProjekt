@@ -26,9 +26,10 @@ WiFiClient client;
 // ICO algorithms
 double omega0 = 0.2;
 double omega1 = 0.4;
+double eta = 0.0001; // Learning rate for ICO
 
-ICOAlgo ico_yaw(0.0001,omega0,omega1,1/SAMPLE_FREQ);
-ICOAlgo ico_move(0.0001,1,1,1/SAMPLE_FREQ);
+ICOAlgo ico_yaw(eta,omega0,omega1,1/SAMPLE_FREQ);
+ICOAlgo ico_move(eta,1,1,1/SAMPLE_FREQ);
 
 // SD card
 const int chipselect = 10;
@@ -126,7 +127,7 @@ void timerISR() {
 
         double updated_yaw = ico_yaw.computeChange(constrain(filtered_gyro_z, 0, 500), setpoint_yaw_degs);
         updated_yaw = abs(updated_yaw); // Ensure updated_yaw is positive
-        updated_yaw = constrain(updated_yaw, 0, 230); // Constrain updated_yaw between 0 and 230 deg/s
+        //updated_yaw = constrain(updated_yaw, 0, 3000); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
         double updated_velocity = setpoint; 
 
@@ -196,17 +197,6 @@ void setup() {
     bmx160.setGyroRange(eGyroRange_500DPS); // Gyro range
     bmx160.setAccelRange(eAccelRange_2G); // Accel range
 
-    // Temp until send from commander works
- /*    i2cMaster.sendParam(SLAVE_ADDRESS_START, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, setpoint0);  
-    i2cMaster.sendParam(SLAVE_ADDRESS_START+1, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, setpoint1);
-    i2cMaster.sendParam(SLAVE_ADDRESS_START+2, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, setpoint2);
-    i2cMaster.sendParam(SLAVE_ADDRESS_START+3, mode, kp, ki, kd);
-    i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, setpoint3); */
-
-    //start_time = millis();
 }
 
 void loop() {
@@ -220,17 +210,6 @@ void loop() {
         is_active = false; // Reset is_active flag when client disconnects
         Serial.println("Client disconnected.");
     }
-/*     int time = millis() - start_time;
-    if (time < 10000) { // Stop logging after 10 seconds
-        logging = true;
-    } else {
-        logging = false;
-        sdLogger.close();
-        Serial.println("Logging stopped at: " + String(time));
-    } */
-
-    //delay(20); // 50Hz
-
 }
 
 void handleClientCommunication(WiFiClient &client) {
@@ -298,7 +277,6 @@ void processClientMessage(String message) {
             }
         }
 
-
     } else if (message.startsWith("SETPOINT:")) {
         client.println("ACK:SETPOINT");
         setpoint = message.substring(9).toFloat();
@@ -311,25 +289,41 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
-    } else if (message.startsWith("ICO:")){
+    } else if (message.startsWith("ICO:")){ //Format to recieve: Received: ICO:0.5,0.9,0.0001
         client.println("ACK:ICO");
         message.remove(0, 4);
-        int comma1 = message.indexOf(',');
-        int comma2 = message.indexOf(',', comma1 + 1);
+        int comma0 = message.indexOf(',');
+        int comma1 = message.indexOf(',', comma0 + 1);
 
-        if (comma1 == -1 || comma2 == -1) {
-            Serial.println("Fejl: Forkert ICO-format");
+        if (comma0 == -1 || comma1 == -1) {
+            Serial.println("Error: Invalid ICO format. Expected 'ICO:omega0,omega1'");
             return;
         }
+        
+        omega0 = message.substring(0, comma0).toFloat();
+        omega1 = message.substring(comma0 + 1).toFloat();
+        eta = message.substring(comma1 + 1).toFloat();
+        
+        if (omega1 <= omega0) {
+            Serial.println("Warning: omega1 should be greater than omega0");
+        }
+        
+        Serial.print("Updated ICO parameters - omega0: "); 
+        Serial.print(omega0);
+        Serial.print(", omega1: "); 
+        Serial.println(omega1);
+        Serial.print("Updated ICO eta: ");
+        Serial.println(eta);
 
-        omega0 = message.substring(0, comma1).toFloat();
-        omega1 = message.substring(comma1 + 1, comma2).toFloat();
-
-        Serial.print("Parsed ICO: ");
-        Serial.print("omega0: "); Serial.print(omega0);
-        Serial.print(" omega1: "); Serial.println(omega1);
-
-        ico_yaw.updateOmegaValues(omega0, omega1);
-        ico_yaw.resetICO(); 
+        if (is_active) {
+            Serial.println("Warning: Updating ICO parameters during active operation");
+        }
+        
+        ico_yaw.updateOmegaValues(omega0, omega1); 
+        ico_move.updateOmegaValues(omega0, omega1);
+        ico_yaw.setEta(eta);
+        ico_move.setEta(eta);
+        ico_yaw.resetICO();
+        ico_move.resetICO();
     }
 }

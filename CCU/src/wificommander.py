@@ -8,7 +8,7 @@ from datetime import datetime
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
 #TCP_IP = "192.168.137.163"
-TCP_IP = "192.168.137.151"
+TCP_IP = "192.168.137.226"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -80,7 +80,8 @@ def send_ico():
     try:
         omega0 = float(entry_omega0.get())
         omega1 = float(entry_omega1.get())
-        send_command(f"ICO:{omega0},{omega1}")
+        eta = float(entry_eta.get())
+        send_command(f"ICO:{omega0},{omega1},{eta}")
     except ValueError:
         print("Error: Invalid input for ICO parameters")
 
@@ -246,16 +247,22 @@ entry_omega1 = tk.Entry(root)
 entry_omega1.grid(row=8, column=1, padx=10, pady=5, sticky="w")
 entry_omega1.insert(0, "0.9")
 
+label_eta = tk.Label(root, text="Learning rate:")
+label_eta.grid(row=9, column=0, padx=10, pady=5, sticky="w")
+entry_eta = tk.Entry(root)
+entry_eta.grid(row=9, column=1, padx=10, pady=5, sticky="w")
+entry_eta.insert(0, "0.0001")
+
 # button to send ICO command
 button_send_ico = tk.Button(root, text="Send ICO", command=send_ico)
-button_send_ico.grid(row=9, column=1, padx=10, pady=5, sticky="w")
+button_send_ico.grid(row=10, column=1, padx=10, pady=5, sticky="w")
 
 # UI Elements for logging
 button_start = tk.Button(root, text="Start", command=start_logging)
-button_start.grid(row=10, column=0, padx=10, pady=5, sticky="w")
+button_start.grid(row=11, column=0, padx=10, pady=5, sticky="w")
 
 button_stop = tk.Button(root, text="Stop", command=stop_logging)
-button_stop.grid(row=11, column=0, padx=10, pady=5, sticky="w")
+button_stop.grid(row=12, column=0, padx=10, pady=5, sticky="w")
 
 
 

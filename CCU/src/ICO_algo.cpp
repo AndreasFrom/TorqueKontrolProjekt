@@ -25,6 +25,11 @@ double ICOAlgo::getEta()
     return eta_;
 }
 
+void ICOAlgo::setEta(double eta)
+{
+    eta_ = constrain(eta, 0, 1);
+}
+
 double ICOAlgo::computeChange(double input, double setpoint) {
     // Calculate S0 from time delay of one sample. (Reflex)
     S0_current_ = S0_next_; // Store previous S0 value
@@ -39,6 +44,7 @@ double ICOAlgo::computeChange(double input, double setpoint) {
 
     // Calculate change of omega1
     omega1_ += (input * eta_ * derivativeError);
+    omega1_ = constrain(omega1_, -1, 1); // Constrain omega1 to be between -1 and 1
 
     // Calculate output
     return (input * omega1_) + (error_ * omega0_); //Reflex + Prediction

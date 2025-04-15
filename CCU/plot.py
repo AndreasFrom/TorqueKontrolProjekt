@@ -5,7 +5,7 @@ from datetime import datetime
 import plotly.io as pio
 
 # Load and prepare data
-df = pd.read_csv('DATA.CSV')
+df = pd.read_csv('output_2025-04-15_12-31-15_1.csv')
 df.columns = df.columns.str.strip()
 motors = ['MU0', 'MU1', 'MU2', 'MU3']
 colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
