@@ -11,6 +11,7 @@
 #include "kinematic.h"
 #include "ICO_algo.h"
 #include "math.h"
+#include "filter.h"
 
 
 #define SEND_DATA_SERIAL false
@@ -24,12 +25,16 @@ WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
 
 // ICO algorithms
+ExponentialDecayFilter filter(0.7); // Example filter with alpha = 0.7
+FIRFilter firFilter({0.5,0.1,0,1,0.1,0.1,0.1}); 
+PassThroughFilter passThroughFilter; 
 double omega0 = 0.2;
 double omega1 = 0.4;
 double eta = 0.0001; // Learning rate for ICO
 
-ICOAlgo ico_yaw(eta,omega0,omega1,1/SAMPLE_FREQ);
-ICOAlgo ico_move(eta,1,1,1/SAMPLE_FREQ);
+ICOAlgo ico_yaw(eta,omega0,omega1,1/SAMPLE_FREQ, &filter); 
+ICOAlgo ico_move(eta,1,1,1/SAMPLE_FREQ, &filter);
+ICOAlgo ico_system(eta,1,1,1/SAMPLE_FREQ, &passThroughFilter);
 
 // SD card
 const int chipselect = 10;
@@ -125,7 +130,9 @@ void timerISR() {
         double error_yaw = ico_yaw.getError(); // Used for datalogging
         double error_velocity = setpoint - actual_velocity;
 
-        double updated_yaw = ico_yaw.computeChange(constrain(filtered_gyro_z, 0, 500), setpoint_yaw_degs);
+        double yaw_input = constrain(filtered_gyro_z, 0, 500);
+        double updated_yaw = ico_yaw.computeChange(yaw_input, yaw_input , setpoint_yaw_degs);
+        double updated_system = ico_system.computeChange(updated_yaw,yaw_input, setpoint_yaw_degs);
         updated_yaw = abs(updated_yaw); // Ensure updated_yaw is positive
         //updated_yaw = constrain(updated_yaw, 0, 3000); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);

@@ -3,8 +3,8 @@
 
 #include "ICO_algo.h"
 
-ICOAlgo::ICOAlgo(double eta, double omega0, double omega1, double sampleTime)
-: eta_(eta), omega0_(omega0), omega1_(omega1), sampleTime_(sampleTime), error_(0), prev_error_(0) { 
+ICOAlgo::ICOAlgo(double eta, double omega0, double omega1, double sampleTime, Filter *filter)
+: eta_(eta), omega0_(omega0), omega1_(omega1), sampleTime_(sampleTime),filter_(filter), error_(0), prev_error_(0) { 
 }
 
 double ICOAlgo::getOmega1(void) {
@@ -30,24 +30,25 @@ void ICOAlgo::setEta(double eta)
     eta_ = constrain(eta, 0, 1);
 }
 
-double ICOAlgo::computeChange(double input, double setpoint) {
+double ICOAlgo::computeChange(double input0, double input1, double setpoint) {
     // Calculate S0 from time delay of one sample. (Reflex)
     S0_current_ = S0_next_; // Store previous S0 value
-    S0_next_ = input; // Update S0 with current input value
+    S0_next_ = input0; // Update S0 with current input value
 
     // Calculate X0 which is the error
     prev_error_ = error_; // Store previous error value
     error_ = setpoint - S0_current_; // Calculate current error
+    error_ = filter_->filter(error_); // Apply filter to error
 
     // Calculate derivative of error
     double derivativeError = (error_ - prev_error_) / sampleTime_; // Calculate derivative of error
 
     // Calculate change of omega1
-    omega1_ += (input * eta_ * derivativeError);
+    omega1_ += (input0 * eta_ * derivativeError);
     omega1_ = constrain(omega1_, -1, 1); // Constrain omega1 to be between -1 and 1
 
     // Calculate output
-    return (input * omega1_) + (error_ * omega0_); //Reflex + Prediction
+    return (input1 * omega1_) + (error_ * omega0_); //Reflex + Prediction
 }
 
 void ICOAlgo::updateOmegaValues(double omega0, double omega1)
