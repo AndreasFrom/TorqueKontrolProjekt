@@ -38,6 +38,8 @@ private:
 
     double S0_current_ = 0; // Stores S0 value at t = 0
     double S0_next_ = 0; // Stores S0 value at t = 1
+
+    double integral_ = 0; // Integral term for PI
 };
 
 #endif  // ICO_ALGO_H

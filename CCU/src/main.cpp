@@ -19,8 +19,8 @@ const double SAMPLE_FREQ = 75.0; //100Hz, 10ms sample time
 // WiFi Config
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
-//WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
-WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
+WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
+//WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
 WiFiClient client;
 
 // ICO algorithms
