@@ -167,49 +167,57 @@ def warp_frame(frame, selected_corners, frame_width, frame_height):
         return None, None
 
 def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
+    def transform_to_meters(point):
+        # Convert image pixel coordinates to real-world meters
+        x_meters = (point[0] / frame_width) * real_world_distance
+        y_meters = (point[1] / frame_height) * real_world_distance
+        return x_meters, y_meters
+
     try:
-        marker_locations = {}  # Dictionary to hold the locations of the markers
-        circle_center = None   # Placeholder for circle center (if needed for your application)
+        marker_locations = {}
+        circle_center = None
+        vertical_dir = None
 
         for i in range(len(object_ids)):
-            # Convert corners into a numpy array for easier handling
-            corners = np.array(object_corners[i])
+            corners = np.array(object_corners[i])  # Shape: (4, 2)
 
-            # Handle car marker separately
             if object_ids[i] == CAR_MARKER:
-                # For the car marker, take the average of its corners to get the center
-                car_corners = corners  # Access the correct car corners
-                
-                # If corners are in shape (4, 1, 2), squeeze to (4, 2)
-                if car_corners.ndim > 2:
-                    car_corners = car_corners.squeeze()
-                
-                # Take the average to find the center of the car marker
-                marker_center = np.mean(car_corners, axis=0)  # Calculate center of the marker
-                
-                # Reshape the center to (1, 1, 2) for perspective transformation
-                marker_point = marker_center.reshape(1, 1, 2)
+                car_corners = corners.squeeze()
+                p2 = car_corners[2]  # Bottom right
+                p3 = car_corners[3]  # Bottom left
+                p1 = car_corners[1]  # Top right
 
+                midpoint = (p2 + p3) / 2
+                vertical_dir = p2 - p1
+                vertical_dir = vertical_dir / np.linalg.norm(vertical_dir)
+
+                imu_offset_meters = 0.5
+                offset_pixels = (imu_offset_meters / real_world_distance) * frame_height
+                new_position = midpoint + (vertical_dir * offset_pixels)
+
+                marker_point = new_position.reshape(1, 1, 2)
             else:
+                # Default to center of marker
+                marker_center = np.mean(corners, axis=0)
                 marker_point = marker_center.reshape(1, 1, 2)
 
-            # Perform the perspective transformation to get the real-world location
+            # Transform to warped real-world image
             transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
 
-            # Calculate real-world coordinates
-            x_meters = (transformed_center[0] / frame_width) * real_world_distance
-            y_meters = (transformed_center[1] / frame_height) * real_world_distance
+            # Convert to meters
+            x_meters, y_meters = transform_to_meters(transformed_center)
             marker_locations[object_ids[i]] = (x_meters, y_meters)
 
-            # Display the marker location on the warped image
-            text = f"ID {object_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
-            cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+            # Draw text only if it's within image bounds
+            x_int, y_int = int(transformed_center[0]), int(transformed_center[1])
+            if 0 <= x_int < warped_image.shape[1] and 0 <= y_int < warped_image.shape[0]:
+                text = f"ID {object_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
+                cv2.putText(warped_image, text, (x_int, y_int),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
 
-            # If it's the circle marker, draw a circle around it
             if object_ids[i] == CIRCLE_MARKER:
                 radius_pixels = int((radius_meters / real_world_distance) * frame_height)
-                cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
+                cv2.circle(warped_image, (x_int, y_int), radius_pixels, (0, 0, 255), 2)
                 circle_center = (x_meters, y_meters)
 
         return marker_locations, circle_center
@@ -296,7 +304,7 @@ def main():
 
         parameters.adaptiveThreshWinSizeMin = 5  # Slightly larger window for better local contrast adaptation
         parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
-        parameters.adaptiveThreshConstant = 3  # Increased value to handle distant markers
+        parameters.adaptiveThreshConstant = 20  # Increased value to handle distant markers
 
         parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
         parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
