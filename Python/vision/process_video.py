@@ -16,4 +16,5 @@ if __name__ == "__main__":
         process_video(video_file)
 
     # Run vision_data_plot.py after all videos are processed
+    subprocess.run(["python", "repair_data.py"], check=True)
     subprocess.run(["python", "vision_data_plot.py"], check=True)
