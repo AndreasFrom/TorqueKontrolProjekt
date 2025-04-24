@@ -15,6 +15,9 @@ CAR_MARKER = 10     # Marks the car position
 MAX_DISTANCE_THRESHOLD = 500  # Maximum allowed distance between consecutive points in pixels
 MOVING_AVG_WINDOW = 10  # Number of frames to average over
 
+trace_car_path = True
+car_path = []  # global or passed to function
+
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
     try:
         cap = cv2.VideoCapture(video_path)
@@ -173,6 +176,7 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
         y_meters = (point[1] / frame_height) * real_world_distance
         return x_meters, y_meters
 
+    global debug, trace_car_path, car_path
     try:
         marker_locations = {}
         circle_center = None
@@ -239,7 +243,7 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
             x_meters, y_meters = transform_to_meters(marker_point[0][0])
             marker_locations[marker_id] = (x_meters, y_meters)
 
-            # Extract pixel coordinates for drawing
+            # Inside your main loop after marker_point is computed:
             x_int, y_int = map(int, marker_point[0][0])
 
             # Draw if within bounds
@@ -247,14 +251,25 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
                 text = f"ID {marker_id}: ({x_meters:.2f}m, {y_meters:.2f}m)"
                 cv2.putText(warped_image, text, (x_int, y_int),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
-                # Draw red dot for the car marker
+
                 if marker_id == CAR_MARKER:
+                    # Draw red dot
                     cv2.circle(warped_image, (x_int, y_int), 5, (0, 0, 255), -1)
 
-            if marker_id == CIRCLE_MARKER:
-                radius_pixels = int((radius_meters / real_world_distance) * frame_height)
-                cv2.circle(warped_image, (x_int, y_int), radius_pixels, (0, 0, 255), 2)
-                circle_center = (x_meters, y_meters)
+                    # Trace car path
+                    if trace_car_path:
+                        car_path.append((x_int, y_int))
+                        for j in range(1, len(car_path)):
+                            # Calculate a smooth gradient color based on the path index
+                            t = j / len(car_path)  # Normalize index to range [0, 1]
+                            color = (
+                                int(255 * (1 - t)),  # Blue decreases
+                                
+                                int((255 * (1 - t) + 112) * 1.5),                  # Red remains constant
+                                int(255 * t)        # Green increases
+                            )
+                            cv2.line(warped_image, car_path[j - 1], car_path[j], color, 2)
+
 
         return marker_locations, circle_center
 
