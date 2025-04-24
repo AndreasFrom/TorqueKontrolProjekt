@@ -179,43 +179,79 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
         vertical_dir = None
 
         for i in range(len(object_ids)):
-            corners = np.array(object_corners[i])  # Shape: (4, 2)
+            marker_id = object_ids[i]
+            corners = np.array(object_corners[i])  # Expecting shape: (4, 2)
 
-            if object_ids[i] == CAR_MARKER:
-                car_corners = corners.squeeze()
-                p2 = car_corners[2]  # Bottom right
-                p3 = car_corners[3]  # Bottom left
-                p1 = car_corners[1]  # Top right
+            if corners.shape[0] < 4:
+                if debug >= 1:
+                    print(f"Warning: Marker {marker_id} has insufficient corners ({corners.shape}). Skipping.")
+                continue
 
+            if marker_id == CAR_MARKER:
+                car_corners = corners.reshape((4, 2))
+
+                try:
+                    p0 = cv2.perspectiveTransform(car_corners[0].reshape(1, 1, 2), matrix)[0][0]  
+                    p3 = cv2.perspectiveTransform(car_corners[3].reshape(1, 1, 2), matrix)[0][0]  
+                    p1 = cv2.perspectiveTransform(car_corners[1].reshape(1, 1, 2), matrix)[0][0] 
+                    p2 = cv2.perspectiveTransform(car_corners[2].reshape(1, 1, 2), matrix)[0][0] 
+                except Exception as e:
+                    if debug >= 1:
+                        print(f"Frame {i}: Error transforming CAR_MARKER corners: {e}")
+                    continue
+
+                # Midpoint of the bottom edge
                 midpoint = (p2 + p3) / 2
-                vertical_dir = p2 - p1
-                vertical_dir = vertical_dir / np.linalg.norm(vertical_dir)
 
-                imu_offset_meters = 0.5
+                # Direction 
+                vertical_dir = p0 - p3
+                norm = np.linalg.norm(vertical_dir)
+
+                if norm == 0:
+                    if debug >= 1:
+                        print(f"Warning: Zero-length direction vector for CAR_MARKER {marker_id}. Skipping.")
+                    continue
+                vertical_dir /= norm
+
+                # Offset the point downward
+                imu_offset_meters = -0.05
                 offset_pixels = (imu_offset_meters / real_world_distance) * frame_height
                 new_position = midpoint + (vertical_dir * offset_pixels)
 
                 marker_point = new_position.reshape(1, 1, 2)
-            else:
-                # Default to center of marker
-                marker_center = np.mean(corners, axis=0)
-                marker_point = marker_center.reshape(1, 1, 2)
 
-            # Transform to warped real-world image
-            transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
+
+            else:
+                mean_point = np.mean(corners, axis=0)
+                if mean_point.shape != (2,):
+                    if debug >= 1:
+                        print(f"Warning: Marker {marker_id} has malformed mean point {mean_point.shape}. Skipping.")
+                    continue
+                try:
+                    marker_center = cv2.perspectiveTransform(mean_point.reshape(1, 1, 2), matrix)[0][0]
+                    marker_point = marker_center.reshape(1, 1, 2)
+                except Exception as e:
+                    if debug >= 1:
+                        print(f"Frame {i}: Error transforming marker {marker_id} center: {e}")
+                    continue
 
             # Convert to meters
-            x_meters, y_meters = transform_to_meters(transformed_center)
-            marker_locations[object_ids[i]] = (x_meters, y_meters)
+            x_meters, y_meters = transform_to_meters(marker_point[0][0])
+            marker_locations[marker_id] = (x_meters, y_meters)
 
-            # Draw text only if it's within image bounds
-            x_int, y_int = int(transformed_center[0]), int(transformed_center[1])
+            # Extract pixel coordinates for drawing
+            x_int, y_int = map(int, marker_point[0][0])
+
+            # Draw if within bounds
             if 0 <= x_int < warped_image.shape[1] and 0 <= y_int < warped_image.shape[0]:
-                text = f"ID {object_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
+                text = f"ID {marker_id}: ({x_meters:.2f}m, {y_meters:.2f}m)"
                 cv2.putText(warped_image, text, (x_int, y_int),
                             cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+                # Draw red dot for the car marker
+                if marker_id == CAR_MARKER:
+                    cv2.circle(warped_image, (x_int, y_int), 5, (0, 0, 255), -1)
 
-            if object_ids[i] == CIRCLE_MARKER:
+            if marker_id == CIRCLE_MARKER:
                 radius_pixels = int((radius_meters / real_world_distance) * frame_height)
                 cv2.circle(warped_image, (x_int, y_int), radius_pixels, (0, 0, 255), 2)
                 circle_center = (x_meters, y_meters)
@@ -225,6 +261,7 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
     except Exception as e:
         print(f"Error during marker location calculation: {str(e)}")
         return {}, None
+
 
 
 
