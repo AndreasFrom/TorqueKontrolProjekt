@@ -98,11 +98,6 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
                             tracked_markers[marker_id]['last_known_corners'] = corners[i]
                             tracked_markers[marker_id]['position_history'].append(current_center)
                             tracked_markers[marker_id]['last_valid_position'] = current_center
-                            
-                            # Calculate moving average if we have enough samples
-                            if len(tracked_markers[marker_id]['position_history']) >= MOVING_AVG_WINDOW:
-                                avg_position = np.mean(tracked_markers[marker_id]['position_history'], axis=0)
-                                tracked_markers[marker_id]['smoothed_position'] = avg_position
                         else:
                             # Reject this detection as too far away
                             if debug >= 1:
@@ -114,12 +109,7 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
         # Handle markers that weren't detected in this frame
         for marker_id in list(tracked_markers.keys()):
             if marker_id not in detected_ids:
-                if tracked_markers[marker_id]['smoothed_position'] is not None:
-                    # Use smoothed position if available
-                    pass  # We'll keep using the last known corners
-                else:
-                    # Fall back to last known corners
-                    tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
+                tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
 
         return True
     except Exception as e:
@@ -136,12 +126,6 @@ def process_markers(tracked_markers, corner_ids):
         if marker_id in corner_ids:
             selected_corners.append(marker_data['corners'][0])
             selected_ids.append(marker_id)
-        elif marker_id == CAR_MARKER:
-            # For the car marker, calculate the mean of all corners as its position
-            car_corners = np.array(marker_data['corners'])
-            car_center = np.mean(car_corners, axis=0)  # Mean of all corners
-            object_corners.append(car_center)  # This is the car's center
-            object_ids.append(marker_id)
         else:
             # For other markers, just take the top-left corner
             object_corners.append(marker_data['corners'][0])  # Top-left corner
@@ -223,8 +207,6 @@ def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, 
                 new_position = midpoint + (vertical_dir * offset_pixels)
 
                 marker_point = new_position.reshape(1, 1, 2)
-
-
             else:
                 mean_point = np.mean(corners, axis=0)
                 if mean_point.shape != (2,):
