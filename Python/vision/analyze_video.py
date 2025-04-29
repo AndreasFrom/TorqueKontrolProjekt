@@ -41,29 +41,50 @@ def initialize_video(video_path, output_path_video, frame_width, frame_height, f
         sys.exit(1)
 
 def detect_markers(detector, frame, valid_ids, tracked_markers):
+    def print_image(frame, name="debug_frame"):
+        global num_iterations
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        debug_path = os.path.join(script_dir, f"{name}_{num_iterations}.jpg")
+        cv2.imwrite(debug_path, frame)
+        print(f"Debug frame saved to {debug_path}")
+
     try:
         global num_iterations
 
+        original_frame = frame.copy()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #debug_gray = gray.copy()
 
         # Use CLAHE instead of convertScaleAbs for better contrast
         clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
         gray = clahe.apply(gray)
+        #debug0 = gray.copy()
+
 
         # Add morphology to view though cable
         kernel = np.ones((5, 5), np.uint8)
         gray = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+        #debug1 = gray.copy()
         gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+        #debug2 = gray.copy()
         gray = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
+        #debug3 = gray.copy()
         gray = cv2.morphologyEx(gray, cv2.MORPH_ERODE, kernel)
+        #debug4 = gray.copy()
+
+        #if num_iterations % 100 == 0:
+        #    print_image(original_frame, "Original_Frame")
+        #    print_image(debug_gray, "gray")
+        #    print_image(debug0,"Morph_Clahe")
+        #    print_image(debug1,"Morph_Close")
+        #    print_image(debug2,"Morph_Open")
+        #    print_image(debug3,"Morph_Dilate")
+        #    print_image(debug4,"Morph_Erode")
 
         # Save debug frame
         if debug >= 3:
             if num_iterations % 10 == 0:
-                script_dir = os.path.dirname(os.path.abspath(__file__))
-                debug_path = os.path.join(script_dir, f"debug_frame_{num_iterations}.jpg")
-                cv2.imwrite(debug_path, gray)
-                print(f"Debug frame saved to {debug_path}")
+                print_image(gray)
 
             num_iterations += 1
 
