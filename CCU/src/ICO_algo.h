@@ -12,7 +12,7 @@ public:
     /// @param omega1 
     /// @param sampleTime 
     /// @param filter
-    ICOAlgo(double eta, double omega0, double omega1 ,double sampleTime, Filter *filter = nullptr);
+    ICOAlgo(double eta, double omega0, double omega1 ,double sampleTime, Filter *h0 = nullptr, Filter *h1 = nullptr);
     double computeChange(double input0, double input1, double setpoint);
 
     void updateOmegaValues(double omega0, double omega1);
@@ -41,7 +41,8 @@ private:
     double S0_current_ = 0; // Stores S0 value at t = 0
     double S0_next_ = 0; // Stores S0 value at t = 1
 
-    Filter *filter_ = nullptr; // Pointer to filter object
+    Filter *h0_ = nullptr; // Pointer to filter object
+    Filter *h1_ = nullptr; // Pointer to filter object
 };
 
 #endif  // ICO_ALGO_H

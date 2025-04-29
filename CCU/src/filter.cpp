@@ -75,7 +75,7 @@ void test_filter(Filter& filter, const std::string& name, int length) {
     std::cout << "------------------------\n\n";
 }
 
-PIDFilterbank::PIDFilterbank(double kp_value, double ki_value, double kd_value, double dt_value)
+PIDFilter::PIDFilter(double kp_value, double ki_value, double kd_value, double dt_value)
 {
     kp = kp_value;
     ki = ki_value;
@@ -85,7 +85,7 @@ PIDFilterbank::PIDFilterbank(double kp_value, double ki_value, double kd_value, 
     integral = 0.0;
 }
 
-double PIDFilterbank::filter(double input)
+double PIDFilter::filter(double input)
 {
     double error = input; // Assuming input is the setpoint
     integral += error * dt;
@@ -96,7 +96,7 @@ double PIDFilterbank::filter(double input)
     return output;
 }
 
-void PIDFilterbank::reset()
+void PIDFilter::reset()
 {
     prev_error = 0.0;
     integral = 0.0;

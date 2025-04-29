@@ -53,6 +53,20 @@ public:
     void reset() override {}
 };
 
+class PIDFilter : public Filter {
+private:
+    double kp, ki, kd;
+    double prev_error;
+    double integral;
+    double dt; 
+public:
+    PIDFilter(double p, double i, double d, double time_step);
+
+    double filter(double input) override;
+
+    void reset() override;
+};
+
 // ===== Test Harness =====
 void test_filter(Filter& filter, const std::string& name, int length = 20);
 
