@@ -38,6 +38,7 @@ double ICOAlgo::computeChange(double input, double setpoint) {
     // Calculate X0 which is the error
     prev_error_ = error_; // Store previous error value
     error_ = setpoint - S0_current_; // Calculate current error
+    constrain(error_, 0, 500); // Constrain error to be between -1 and 1
 
     // Calculate derivative of error
     double derivativeError = (error_ - prev_error_) / sampleTime_; // Calculate derivative of error

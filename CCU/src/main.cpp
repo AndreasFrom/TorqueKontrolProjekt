@@ -136,8 +136,8 @@ void timerISR() {
         Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
         #endif
 
-        //kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
-        kinematic_model.getVelocities_acker(updated_yaw, 0.5, Wheel_velocities); // Use updated_yaw for velocity calculation
+        kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
+        //kinematic_model.getVelocities_acker(updated_yaw, 0.5, Wheel_velocities); // Use updated_yaw for velocity calculation
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Wheel Velocities: ");
