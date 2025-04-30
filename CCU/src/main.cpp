@@ -12,6 +12,7 @@
 #include "ICO_algo.h"
 #include "math.h"
 #include "filter.h"
+#include <vector>
 
 
 #define SEND_DATA_SERIAL false
@@ -21,20 +22,30 @@ const double SAMPLE_FREQ = 75.0; //100Hz, 10ms sample time
 //WiFiHandler wifiHandler("coolguys123", "werty123", 4242);
 //WiFiHandler wifiHandler("net", "simsimbims", 4242);
 //WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
-WiFiHandler wifiHandler("ANDREASPC", "banjomus", 4242);
+WiFiHandler wifiHandler("Bimso", "banjomus", 4242);
 WiFiClient client;
 
 // ICO algorithms
-ExponentialDecayFilter filter(0.7); // Example filter with alpha = 0.7
-FIRFilter firFilter({0.5,0.1,0,1,0.1,0.1,0.1}); 
-PassThroughFilter passThroughFilter; 
+ExponentialDecayFilter filter(0.1); // Example filter with alpha = 0.7
+ExponentialDecayFilter filter2(0.8); // Example filter with alpha = 0.7
+
+
+//PassThroughFilter passThroughFilter; 
 double omega0 = 0.2;
 double omega1 = 0.4;
 double eta = 0.0001; // Learning rate for ICO
 
-ICOAlgo ico_yaw(eta,omega0,omega1,1/SAMPLE_FREQ, &filter); 
-ICOAlgo ico_move(eta,1,1,1/SAMPLE_FREQ, &filter);
-ICOAlgo ico_system(eta,1,1,1/SAMPLE_FREQ, &passThroughFilter);
+// Create Reflex object
+Reflex reflex(omega0, 1.0 / SAMPLE_FREQ, &filter);
+
+Predictive predictive2(eta, omega1, &filter2); // Create Predictive object with eta and omega_predictive_start
+
+std::vector<Predictive> predictive_vector;
+
+// Create ICOAlgo objects using Reflex and Predictive components
+ICOAlgo ico_yaw(eta, 1.0 / SAMPLE_FREQ, &reflex, &predictive_vector);
+ICOAlgo ico_move(eta, 1.0 / SAMPLE_FREQ, &reflex, &predictive_vector);
+
 
 // SD card
 const int chipselect = 10;
@@ -62,6 +73,8 @@ float setpoint_radius = 0.5;
 
 double actual_velocity = 0; // Initialize actual velocity
 
+double logging_time_start = 0; // Initialize logging time
+
 // int setpoint0 = 711; // left front
 // int setpoint1 = 916.9; // right front
 // int setpoint2 = 582.8; // left rear
@@ -87,6 +100,19 @@ void handleClientCommunication(WiFiClient &client);
 void processClientMessage(String message);
 
 void timerISR() {
+    if ((millis() - logging_time_start) >= (1000*10))
+    {
+        is_active = false;
+        sdLogger.close();
+        // Reset all setpoints
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, 0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, 0);
+        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, 0);
+
+        //Serial.println("Logging stopped!");
+    }
+
     if(is_active){
         //Perform measurements and add to queue
         unsigned long timestamp = millis();   
@@ -131,19 +157,21 @@ void timerISR() {
         double error_velocity = setpoint - actual_velocity;
 
         double yaw_input = constrain(filtered_gyro_z, 0, 500);
-        double updated_yaw = ico_yaw.computeChange(yaw_input, yaw_input , setpoint_yaw_degs);
-        double updated_system = ico_system.computeChange(updated_yaw,yaw_input, setpoint_yaw_degs);
-        updated_yaw = abs(updated_yaw); // Ensure updated_yaw is positive
+        //double updated_yaw = ico_yaw.computeChange(yaw_input, yaw_input , setpoint_yaw_degs);
+        //double updated_system = ico_system.computeChange(updated_yaw,yaw_input, setpoint_yaw_degs);
+        //updated_yaw = constrain(updated_yaw, 0, 3000); // Constrain updated_yaw between 0 and 300 deg/s
         //updated_yaw = constrain(updated_yaw, 0, 3000); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
-        double updated_velocity = setpoint; 
+        double updated_yaw = 1;
+        double updated_velocity = ico_yaw.computeChange(yaw_input, yaw_input, setpoint_yaw_degs); // Constrain updated_velocity between 0 and 300 deg/s
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
         Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
         #endif
 
-        kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
+        //kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
+        kinematic_model.getVelocities_acker(updated_velocity, 0.5, Wheel_velocities); // 0.5 radius of circle
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Wheel Velocities: ");
@@ -176,7 +204,8 @@ void timerISR() {
             MU0, MU1, MU2, MU3,
             error_yaw, error_velocity,
             updated_yaw, updated_velocity,
-            ico_yaw.getOmega1(), ico_move.getOmega1()
+            static_cast<float>(ico_yaw.getOmega1()), 
+            static_cast<float>(ico_move.getOmega1())
         });
     }
 }
@@ -204,6 +233,7 @@ void setup() {
     bmx160.setGyroRange(eGyroRange_500DPS); // Gyro range
     bmx160.setAccelRange(eAccelRange_2G); // Accel range
 
+    predictive_vector.push_back(&predictive2);
 }
 
 void loop() {
@@ -233,12 +263,8 @@ void processClientMessage(String message) {
     if (message == "START") {
         client.println("ACK:START");
         is_active = true;
-        // Set all setpoints
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   wheel_RPMs.v_left_front);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, wheel_RPMs.v_right_front);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, wheel_RPMs.v_left_rear);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, wheel_RPMs.v_right_rear);
         Serial.println("Logging started!");
+        logging_time_start = millis(); // Start logging time
 
     } else if (message == "STOP") {
         client.println("ACK:STOP");

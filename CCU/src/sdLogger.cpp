@@ -55,8 +55,8 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.error_velocity) + ", " +
             String(data.updated_yaw) + ", " +
             String(data.updated_velocity) + ", " +
-            String(data.omega_yaw) + ", " +
-            String(data.omega_move);
+            String(data.omega_yaw, 5U) + ", " +
+            String(data.omega_move, 5U);
         _dataFile.println(line);
         //Serial.println(line);
     }else{
