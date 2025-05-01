@@ -27,24 +27,31 @@ WiFiClient client;
 
 // ICO algorithms
 ExponentialDecayFilter filter(0.1); // Example filter with alpha = 0.7
+ExponentialDecayFilter filter1(0.5); // Example filter with alpha = 0.7
 ExponentialDecayFilter filter2(0.8); // Example filter with alpha = 0.7
+FIRFilter firFilter({0.1, 0.2, 0.3}); // Example FIR filter with coefficients
 
-
-//PassThroughFilter passThroughFilter; 
+// ICO parameters
 double omega0 = 0.2;
 double omega1 = 0.4;
-double eta = 0.0001; // Learning rate for ICO
+double eta = 0.0001;
 
-// Create Reflex object
-Reflex reflex(omega0, 1.0 / SAMPLE_FREQ, &filter);
+// Create predictive vectors and populate immediately
+std::vector<Predictive> predictive_vector_yaw = {
+    Predictive(eta, omega1, new ExponentialDecayFilter(0.95f))
+};
+std::vector<Predictive> predictive_vector_move = {
+    Predictive(eta, omega1, new PassThroughFilter())
+};
 
-Predictive predictive2(eta, omega1, &filter2); // Create Predictive object with eta and omega_predictive_start
+// Reflexes
+Reflex reflex_yaw(omega0, 1.0 / SAMPLE_FREQ, new ExponentialDecayFilter(0.1f));
+Reflex reflex_move(omega1, 1.0 / SAMPLE_FREQ, new PassThroughFilter());
 
-std::vector<Predictive> predictive_vector;
+// ICO algorithms
+ICOAlgo ico_yaw(eta, 1.0 / SAMPLE_FREQ, reflex_yaw, predictive_vector_yaw);
+ICOAlgo ico_move(eta, 1.0 / SAMPLE_FREQ, reflex_move, predictive_vector_move);
 
-// Create ICOAlgo objects using Reflex and Predictive components
-ICOAlgo ico_yaw(eta, 1.0 / SAMPLE_FREQ, &reflex, &predictive_vector);
-ICOAlgo ico_move(eta, 1.0 / SAMPLE_FREQ, &reflex, &predictive_vector);
 
 
 // SD card
@@ -233,7 +240,9 @@ void setup() {
     bmx160.setGyroRange(eGyroRange_500DPS); // Gyro range
     bmx160.setAccelRange(eAccelRange_2G); // Accel range
 
-    predictive_vector.push_back(&predictive2);
+    //predictive_vector_yaw.emplace_back(eta, omega1, &filter2);
+    //predictive_vector_move.emplace_back(eta, omega1, &filter2);
+
 }
 
 void loop() {

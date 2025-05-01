@@ -3,15 +3,12 @@
 
 #include "ICO_algo.h"
 
-ICOAlgo::ICOAlgo(double eta, double sampleTime, Reflex reflex, std::vector<Predictive>* predictive)
+ICOAlgo::ICOAlgo(double eta, double sampleTime, Reflex& reflex, std::vector<Predictive>& predictive)
     : eta_(eta), sampleTime_(sampleTime), reflex_(reflex), predictive_(predictive)
 {
-    reflex_.setSampleTime(sampleTime); // Set sample time for reflex object
-    for (auto it = predictive_->begin(); it != predictive_->end(); ++it) {
-        it->setEta(eta_);
-        it->resetICO(); // Reset each predictive object
-    }
+    reflex_.setSampleTime(sampleTime);
 }
+
 
 
 double ICOAlgo::getError() {
@@ -24,30 +21,30 @@ double ICOAlgo::getEta()
 }
 
 double ICOAlgo::getOmega1() {
-    //return predictive_[0]->getOmega_n(); 
+    return predictive_.at(0).getOmega_n();
 }
 
 void ICOAlgo::setEta(double eta)
 {
     eta_ = constrain(eta, 0, 1);
-    for (auto it = predictive_->begin(); it != predictive_->end(); ++it) {
+    for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
         it->setEta(eta_);
     }
 }
 
 double ICOAlgo::computeChange(double input_reflex, double input_prediction, double setpoint)
 {
-    Serial.println("computeChange");
+    //Serial.println("computeChange");
     double derivatative_error = reflex_.computeDerivativeError(input_reflex, setpoint); // Calculate derivative error
     double reflex_out = reflex_.getError() * reflex_.getOmega0(); // Calculate reflex output
     double predictive_sum = 0; // Initialize predictive sum
-    Serial.println("Beforeloop");
+    //Serial.println("Beforeloop");
 
     // Print size of predictive vector
-    Serial.print("Predictive size: ");
-    Serial.println(predictive_->size());
-    for (auto it = predictive_->begin(); it != predictive_->end(); ++it) {
-        Serial.println("computeOutput");
+    //Serial.print("Predictive size: ");
+    //Serial.println(predictive_.size());
+    for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
+        //Serial.println("computeOutput");
         predictive_sum += it->computeOutput(input_prediction, derivatative_error); // Calculate predictive output
     }
     return (reflex_out + predictive_sum);
@@ -57,29 +54,30 @@ double ICOAlgo::computeChange(double input_reflex, double input_prediction, doub
 void ICOAlgo::updateOmegaValues(double omega0, double omega_predictive_start)
 {
     reflex_.setOmega0(omega0); // Update reflex omega0 value
-    for (auto it = predictive_->begin(); it != predictive_->end(); ++it) {
+    //Serial.println("Update omega0:");
+    //Serial.println(omega0);
+    for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
+        //Serial.println("Update omega_predictive_start:");
+        //Serial.println(omega_predictive_start);
         it->setOmega_n_start(omega_predictive_start); // Update predictive omega value
     }
 }
 
 void ICOAlgo::resetICO() {
     reflex_.resetICO(); // Reset reflex object
-    for (auto it = predictive_->begin(); it != predictive_->end(); ++it) {
+    for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
         it->resetICO(); // Reset each predictive object
     }
 }
 
 
 Reflex::Reflex(double omega0, double sampleTime, Filter *h0)
-: omega0_(omega0), sampleTime_(sampleTime), h0_(h0) {
-    // Initialize the reflex object with the same parameters
-    setOmega0(omega0_);
-}
+: omega0_(omega0), sampleTime_(sampleTime), h0_(h0) {}
 
 double ICOAlgo::getomega_n()
 {
     double sum = 0;
-    for (auto it = predictive_->begin(); it != predictive_->end(); ++it) {
+    for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
         sum += it->getOmega_n(); // Sum omega_n values from all predictive objects
     }
     return sum;
@@ -111,7 +109,7 @@ void Reflex::resetICO() {
 }
 
 double Reflex::computeDerivativeError(double input_reflex, double setpoint) {
-    Serial.println("computeDerivativeError");
+    //Serial.println("computeDerivativeError");
     // Calculate S0 from time delay of one sample. (Reflex)
     S0_current_ = S0_next_; // Store previous S0 value
     S0_next_ = input_reflex; // Update S0 with current input value
@@ -121,7 +119,7 @@ double Reflex::computeDerivativeError(double input_reflex, double setpoint) {
     error_ = setpoint - S0_current_; // Calculate current error
     
     if (h0_ != nullptr) {
-        Serial.println("Filter applied to error");
+        //Serial.println("Filter applied to error");
         error_ = h0_->filter(error_); // Apply filter to error
     }
 
@@ -160,8 +158,8 @@ void Predictive::updateOmegaValue(double input_prediction, double derivativeErro
     // Calculate change of omega_predictive_start
     omega_n_ += (input_prediction * eta_ * derivativeError);
     omega_n_ = constrain(omega_n_, -3, 3); // Constrain omega_predictive_start to be between -1 and 1
-    Serial.print("Omega_n: ");
-    Serial.println(omega_n_);
+    //Serial.print("Omega_n: ");
+    //Serial.println(omega_n_);
 }
 
 void Predictive::resetICO() {
@@ -172,15 +170,18 @@ double Predictive::computeOutput(double input_prediction, double derivativeError
     // Calculate prediction with filterbank
     if (hn_ != nullptr) {
         // Apply filter to input prediction
-        Serial.println("Filter applied to input prediction");
+        //Serial.println("Filter applied to input prediction");
         input_prediction = hn_->filter(input_prediction); // Apply filter to prediction
     }
 
     updateOmegaValue(input_prediction, derivativeError); 
 
-    Serial.println("computeOutput");
-    Serial.println(input_prediction);
-    return omega_n_ * input_prediction; // Calculate output
+    //Serial.println("computeOutput");
+    //Serial.println(input_prediction);
+    double output = omega_n_ * input_prediction;
+    //Serial.print("Output: ");
+    //Serial.println(output);
+    return output; // Calculate output
 }
 
 #endif  // ICO_ALGRO_H

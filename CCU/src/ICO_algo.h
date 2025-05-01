@@ -60,7 +60,7 @@ public:
     /// @param omega_predictive_start 
     /// @param sampleTime 
     /// @param filter
-    ICOAlgo(double eta, double sampleTime, Reflex reflex, std::vector<Predictive>* predictive);
+    ICOAlgo(double eta, double sampleTime, Reflex& reflex, std::vector<Predictive>& predictive);
     double computeChange(double input0, double input1, double setpoint);
 
     void updateOmegaValues(double omega0, double omega_n);
@@ -81,9 +81,9 @@ private:
     double eta_;        // Learning rate
     double sampleTime_; // Sample time for ICO computation
 
-    Reflex reflex_; // Reflex object for prediction
+    Reflex& reflex_; // Reflex object for prediction
 
-    std::vector<Predictive>* predictive_;
+    std::vector<Predictive>& predictive_;
 };
 
 
