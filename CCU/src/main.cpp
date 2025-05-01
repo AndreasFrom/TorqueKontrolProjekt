@@ -227,7 +227,7 @@ void processClientMessage(String message) {
             }
         }
 
-        kinematic_model.getRpms_acker(setpoint, setpoint_radius, wheel_RPMs);
+        kinematic_model.getVelocities_acker(setpoint, setpoint_radius, wheel_RPMs);
         Serial.print("M0: "); Serial.println(wheel_RPMs.v_left_front);
         Serial.print("M1: "); Serial.println(wheel_RPMs.v_right_front);
         Serial.print("M2: "); Serial.println(wheel_RPMs.v_left_rear);
