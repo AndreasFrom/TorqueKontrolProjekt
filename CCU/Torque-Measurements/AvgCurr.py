@@ -26,7 +26,7 @@ else:
             # Compute per-column averages and total
             avg = df[current_columns].mean()
             total = avg.sum()
-            avg['TotalCurrent'] = total
+            avg['Sum'] = total
 
             data.append(avg)
             filenames.append(os.path.basename(file))
@@ -46,7 +46,7 @@ else:
 
         print("\nPlotting...")
         ax = df_plot.plot(kind='bar', figsize=(12, 6), colormap='tab10')
-        plt.title('Average Currents per File (Including TotalCurrent = Sum of MU Averages)')
+        plt.title('Average Currents')
         plt.xlabel('CSV File')
         plt.ylabel('Current')
         plt.xticks(rotation=45, ha='right')
