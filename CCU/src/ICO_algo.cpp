@@ -146,6 +146,8 @@ void Reflex::resetICO() {
 
     S0_current_ = 0; // Stores S0 value at t = 0
     S0_next_ = 0; // Stores S0 value at t = 1
+
+    h0_->reset(); // Reset the filter
     
 #ifdef DEBUG_ICO
     Serial.println("RESET: Reflex prev_error reset to 0");
@@ -219,6 +221,8 @@ void Predictive::updateOmegaValue(double input_prediction, double derivativeErro
 
 void Predictive::resetICO() {
     omega_n_ = omega_n_start_;
+
+    hn_->reset(); // Reset the filter if it exists
 #ifdef DEBUG_ICO
     Serial.println("RESET: Predictive omega_n reset");
 #endif
