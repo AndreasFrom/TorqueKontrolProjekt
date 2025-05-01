@@ -87,7 +87,7 @@ PIDFilter::PIDFilter(double kp_value, double ki_value, double kd_value, double d
 
 double PIDFilter::filter(double input)
 {
-    double error = input; // Assuming input is the setpoint
+    double error = input;
     integral += error * dt;
     double derivative = (error - prev_error) / dt;
     double output = kp * error + ki * integral + kd * derivative;

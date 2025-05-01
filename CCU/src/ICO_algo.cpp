@@ -36,13 +36,9 @@ double ICOAlgo::computeChange(double input_reflex, double input_prediction, doub
 {
     //Serial.println("computeChange");
     double derivatative_error = reflex_.computeDerivativeError(input_reflex, setpoint); // Calculate derivative error
-    double reflex_out = reflex_.getError() * reflex_.getOmega0(); // Calculate reflex output
+    double reflex_out = reflex_.getFilteredError() * reflex_.getOmega0(); // Calculate reflex output
     double predictive_sum = 0; // Initialize predictive sum
     //Serial.println("Beforeloop");
-
-    // Print size of predictive vector
-    //Serial.print("Predictive size: ");
-    //Serial.println(predictive_.size());
     for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
         //Serial.println("computeOutput");
         predictive_sum += it->computeOutput(input_prediction, derivatative_error); // Calculate predictive output
@@ -92,7 +88,10 @@ double Reflex::getError() {
     return error_;
 }
 
-
+double Reflex::getFilteredError()
+{
+    return filtered_error_;
+}
 
 void Reflex::setOmega0(double omega0)
 {
@@ -120,10 +119,12 @@ double Reflex::computeDerivativeError(double input_reflex, double setpoint) {
     
     if (h0_ != nullptr) {
         //Serial.println("Filter applied to error");
-        error_ = h0_->filter(error_); // Apply filter to error
+        filtered_prev_error_ = filtered_error_; // Store previous filtered error value
+        filtered_error_ = h0_->filter(error_); // Apply filter to error
+        // Calculate derivative of error
+        return (filtered_error_ - filtered_prev_error_) / sampleTime_; // Calculate derivative of error
     }
 
-    // Calculate derivative of error
     return (error_ - prev_error_) / sampleTime_; // Calculate derivative of error
 }
 

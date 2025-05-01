@@ -38,14 +38,14 @@ double eta = 0.0001;
 
 // Create predictive vectors and populate immediately
 std::vector<Predictive> predictive_vector_yaw = {
-    Predictive(eta, omega1, new ExponentialDecayFilter(0.95f))
+    Predictive(eta, omega1, new ExponentialDecayFilter(0.95)), 
 };
 std::vector<Predictive> predictive_vector_move = {
     Predictive(eta, omega1, new PassThroughFilter())
 };
 
 // Reflexes
-Reflex reflex_yaw(omega0, 1.0 / SAMPLE_FREQ, new ExponentialDecayFilter(0.1f));
+Reflex reflex_yaw(omega0, 1.0 / SAMPLE_FREQ, new PIDFilter(1, 0.5f, 0.0f, 1/SAMPLE_FREQ));
 Reflex reflex_move(omega1, 1.0 / SAMPLE_FREQ, new PassThroughFilter());
 
 // ICO algorithms

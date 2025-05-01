@@ -11,6 +11,7 @@ class Reflex {
         double computeDerivativeError(double input0, double setpoint);
         double getOmega0();
         double getError();
+        double getFilteredError();
         void setOmega0(double omega0);
         void setSampleTime(double sampleTime);
         void resetICO();
@@ -24,6 +25,8 @@ class Reflex {
 
         double error_ = 0; // Stores current error
         double prev_error_ = 0;   // Previous error for derivative term
+        double filtered_error_ = 0; // Filtered error
+        double filtered_prev_error_ = 0; // Previous filtered error
 
         double S0_current_ = 0; // Stores S0 value at t = 0
         double S0_next_ = 0; // Stores S0 value at t = 1
