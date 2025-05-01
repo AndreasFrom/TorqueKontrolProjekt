@@ -1,5 +1,6 @@
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 import glob
 import os
 
@@ -52,6 +53,23 @@ else:
         plt.xticks(rotation=45, ha='right')
         plt.legend(title='Current Type', bbox_to_anchor=(1.05, 1), loc='upper left')
         plt.grid(True, axis='y')
+
+        # Linear regression for the 'Sum' column
+        x = np.arange(len(df_plot))  # X-axis values (indices of the files)
+        y = df_plot['Sum'].values   # Y-axis values (Sum column)
+        coeffs = np.polyfit(x, y, 1)  # Linear regression (degree 1)
+        regression_line = np.polyval(coeffs, x)  # Compute regression line
+
+        # Plot the regression line
+        plt.plot(x, regression_line, color='red', linestyle='--', label='Linear Regression (Sum)')
+
+        # Add regression formula as text on the plot
+        formula = f"y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}"
+        plt.text(0.5, max(y) + 0.1, formula, color='red', fontsize=12, ha='center')
+
+        # Adjust legend position to avoid overlapping
+        plt.legend(loc='upper left', bbox_to_anchor=(0.01, 1.0))
+
         plt.tight_layout()
         plt.show()
 
@@ -106,6 +124,5 @@ MU0current    0.362463
 MU1current    0.552960
 MU2current    0.107188
 MU3current    0.244375
-
 
 """
