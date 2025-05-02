@@ -8,7 +8,7 @@ from datetime import datetime
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
 #TCP_IP = "192.168.137.163"
-TCP_IP = "192.168.137.176"
+TCP_IP = "192.168.137.196"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -239,19 +239,19 @@ label_omega0 = tk.Label(root, text="Omega 0:")
 label_omega0.grid(row=7, column=0, padx=10, pady=5, sticky="w")
 entry_omega0 = tk.Entry(root)
 entry_omega0.grid(row=7, column=1, padx=10, pady=5, sticky="w")
-entry_omega0.insert(0, "0.01")
+entry_omega0.insert(0, "0.0025")
 
 label_omega1 = tk.Label(root, text="Omega 1:")
 label_omega1.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 entry_omega1 = tk.Entry(root)
 entry_omega1.grid(row=8, column=1, padx=10, pady=5, sticky="w")
-entry_omega1.insert(0, "0.06")
+entry_omega1.insert(0, "0.05")
 
 label_eta = tk.Label(root, text="Learning rate:")
 label_eta.grid(row=9, column=0, padx=10, pady=5, sticky="w")
 entry_eta = tk.Entry(root)
 entry_eta.grid(row=9, column=1, padx=10, pady=5, sticky="w")
-entry_eta.insert(0, "0.0000005")
+entry_eta.insert(0, "0.00000001")
 
 # button to send ICO command
 button_send_ico = tk.Button(root, text="Send ICO", command=send_ico)
