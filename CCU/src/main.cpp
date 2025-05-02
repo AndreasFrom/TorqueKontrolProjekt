@@ -38,7 +38,7 @@ double eta = 0.0001;
 
 // Create predictive vectors and populate immediately
 std::vector<Predictive> predictive_vector_yaw = {
-    Predictive(eta, omega1, new PassThroughFilter()), 
+    Predictive(eta, omega1, new FIRFilter({-0.014, -0.127, -0.127, 0.111, 0.383, 0.383, 0.111, -0.127, -0.127, -0.014}))
 };
 std::vector<Predictive> predictive_vector_move = {
     Predictive(eta, omega1, new PassThroughFilter())
@@ -212,7 +212,7 @@ void timerISR() {
             error_yaw, error_velocity,
             updated_yaw, updated_velocity,
             static_cast<float>(ico_yaw.getOmega1()), 
-            static_cast<float>(ico_move.getOmega1())
+            static_cast<float>(ico_yaw.getPredictiveSum()),
         });
     }
 }
@@ -271,6 +271,8 @@ void processClientMessage(String message) {
 
     if (message == "START") {
         client.println("ACK:START");
+        ico_move.clearFilters(); // Reset filters for ICO
+        ico_yaw.clearFilters(); // Reset filters for ICO
         is_active = true;
         Serial.println("Logging started!");
         logging_time_start = millis(); // Start logging time

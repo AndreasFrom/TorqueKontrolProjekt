@@ -35,6 +35,14 @@ void ICOAlgo::setEta(double eta) {
 #endif
 }
 
+void ICOAlgo::clearFilters() 
+{
+    for (auto it = predictive_.begin(); it != predictive_.end(); ++it) {
+        it->clearFilter();
+    }
+    reflex_.clearFilter();
+}
+
 double ICOAlgo::computeChange(double input_reflex, double input_prediction, double setpoint) {
 #ifdef DEBUG_ICO
     Serial.println("CC: Starting computeChange");
@@ -54,6 +62,7 @@ double ICOAlgo::computeChange(double input_reflex, double input_prediction, doub
 #endif
         predictive_sum += pred_output;
     }
+    predictive_sum_ = predictive_sum; 
     double result = reflex_out + predictive_sum;
 #ifdef DEBUG_ICO
     Serial.print("CC: Total output = ");
@@ -137,6 +146,10 @@ void Reflex::setSampleTime(double sampleTime) {
 #endif
 }
 
+void Reflex::clearFilter(){
+    h0_->reset();
+}
+
 void Reflex::resetICO() {
     prev_error_ = 0;
     error_ = 0; // Stores current error
@@ -208,6 +221,11 @@ void Predictive::setEta(double eta) {
     Serial.print("SET: Predictive eta = ");
     Serial.println(eta_);
 #endif
+}
+
+void Predictive::clearFilter()
+{
+    hn_->reset(); 
 }
 
 void Predictive::updateOmegaValue(double input_prediction, double derivativeError) {

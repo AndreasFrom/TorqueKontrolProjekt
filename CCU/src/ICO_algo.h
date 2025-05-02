@@ -14,6 +14,8 @@ class Reflex {
         double getFilteredError();
         void setOmega0(double omega0);
         void setSampleTime(double sampleTime);
+        void clearFilter();
+
         void resetICO();
     private:
         double input_;      // Current data from IMU
@@ -43,6 +45,8 @@ class Predictive {
         void setOmega_n_start(double omega_n_start);
         double getEta();
         void setEta(double eta);
+        void clearFilter();
+
         void resetICO();
 
     private:
@@ -73,7 +77,9 @@ public:
     double getOmega0();
     double getError();
     double getEta();
+    double getPredictiveSum() { return predictive_sum_; } 
     void  setEta(double eta);
+    void clearFilters();
 
     void resetICO();
 
@@ -83,6 +89,7 @@ private:
 
     double eta_;        // Learning rate
     double sampleTime_; // Sample time for ICO computation
+    double predictive_sum_ = 0; // Sum of predictive outputs
 
     Reflex& reflex_; // Reflex object for prediction
 
