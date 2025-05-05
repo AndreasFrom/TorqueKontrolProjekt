@@ -35,6 +35,7 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.acc_x) + ", " +
             String(data.acc_y) + ", " + 
             String(data.gyro_z) + ", " +
+            String(data.actual_velocity) + ", " +
             String(data.Kp) + ", " +
             String(data.Ki) + ", " +
             String(data.Kd) + ", " +
@@ -49,7 +50,13 @@ void SDLogger::addData(const dataBlock& data) {
             String(data.MU2.current_recv) + ", " +
             String(data.MU3.setpoint_recv) + ", " +
             String(data.MU3.value_recv) + ", " +
-            String(data.MU3.current_recv);
+            String(data.MU3.current_recv) + ", " +
+            String(data.error_yaw) + ", " +
+            String(data.error_velocity) + ", " +
+            String(data.updated_yaw) + ", " +
+            String(data.updated_velocity) + ", " +
+            String(data.omega_yaw, 5U) + ", " +
+            String(data.omega_move, 5U);
         _dataFile.println(line);
         //Serial.println(line);
     }else{

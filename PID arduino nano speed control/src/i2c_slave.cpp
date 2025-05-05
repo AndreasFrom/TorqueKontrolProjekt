@@ -66,7 +66,7 @@ double I2CSlave::getKd() {
     return _kd;
 }
 
-char I2CSlave::getCtrlMode() {
+uint8_t I2CSlave::getCtrlMode() {
     return _mode;
 }
 
@@ -76,22 +76,30 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
     switch(Wire.read()){
         case CMD_SetPIDParam :
             Serial.println("CMD_SetPIDParam");
-            if (bytes == 5){
+            if (bytes == 8){
                 instance->_mode = Wire.read();
-                instance->_kp = Wire.read() / 10.0;
-                instance->_ki = Wire.read() / 10.0;
-                instance->_kd = Wire.read() / 10.0;
+                uint8_t msb_kp = Wire.read();
+                uint8_t lsb_kp = Wire.read();
+                uint8_t msb_ki = Wire.read();
+                uint8_t lsb_ki = Wire.read();
+                uint8_t msb_kd = Wire.read();
+                uint8_t lsb_kd = Wire.read();                
+                
+                instance->_kp = static_cast<double>(static_cast<uint16_t>((msb_kp << 8) | lsb_kp)) / SCALE_FACTOR_KP;
+                instance->_ki = static_cast<double>(static_cast<uint16_t>((msb_ki << 8) | lsb_ki)) / SCALE_FACTOR_KI;
+                instance->_kd = static_cast<double>(static_cast<uint16_t>((msb_kd << 8) | lsb_kd)) / SCALE_FACTOR_KD;
+                
 
                 instance->newPIDGainsAvailable = true; // Set the flag to indicate new gains are available
                 
                 Serial.print("Received: Mode = ");
                 Serial.print(instance->_mode);
                 Serial.print(", Kp = ");
-                Serial.print(instance->_kp);
+                Serial.print(instance->_kp,3);
                 Serial.print(", Ki = ");
-                Serial.print(instance->_ki);
+                Serial.print(instance->_ki,3);
                 Serial.print(", Kd = ");
-                Serial.println(instance->_kd);
+                Serial.println(instance->_kd,4);
                 break;
             }
             Serial.print("Missing I2C data");
@@ -103,10 +111,10 @@ void I2CSlave::receiveEvent(int bytes) { // Read data from master
                 switch (instance->_mode)    
                 {
                 case 0:
-                instance->_setpoint = Wire.read() / SCALE_FACTOR_SPEED;  // Scale for RPM
+                    instance->_setpoint = (Wire.read() / SCALE_FACTOR_SPEED) * VtoRPM;  // Scale for RPM
                     break;
                 case 1:
-                    instance->_setpoint = Wire.read() / SCALE_FACTOR_TORQUE;  // Scale for Torque
+                    instance->_setpoint = Wire.read() / (SCALE_FACTOR_TORQUE / SCALE_FACTOR_INTERNAL_TORQUE);  // Scale for Torque (received in 10*^-3 Nm (Milli newton meter))
                     break;
                 case 2:
                     instance->_setpoint = Wire.read() / SCALE_FACTOR_RPM;  // Scale for RPM
@@ -136,13 +144,13 @@ void I2CSlave::requestEvent() { // Send data to master
         // Return Setpoint and measured Speed/Torque/RPM
         switch (instance->_mode){
             case 0 : // Speed
-                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_SPEED));  
+                Wire.write((byte)((instance->_setpoint * SCALE_FACTOR_SPEED) * RPMtoV ));  
                 Wire.write((byte)(instance->_currentVelocity * SCALE_FACTOR_SPEED));
                 break;
 
             case 1 : // Torque
-                Wire.write((byte)(instance->_setpoint * SCALE_FACTOR_TORQUE));
-                Wire.write((byte)(instance->_currentTorque * SCALE_FACTOR_TORQUE));
+                Wire.write((byte)(instance->_setpoint * (SCALE_FACTOR_TORQUE / SCALE_FACTOR_INTERNAL_TORQUE)));
+                Wire.write((byte)(instance->_currentTorque * (SCALE_FACTOR_TORQUE / SCALE_FACTOR_INTERNAL_TORQUE)));
                 break;
 
             case 2 : // RPM (Secret mode)

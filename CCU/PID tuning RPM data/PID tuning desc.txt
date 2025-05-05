@@ -1,0 +1,35 @@
+PID tuning
+Set 100, 
+A Kp5, Oscilaltes fast
+B Kp4, Oscilaltes slower
+C Kp3, A little slower
+D Kp2.5, Does not oscillate very much
+E Kp2, No oscillations
+
+F Kp 2.2 Good
+
+Kp = 2.2 is good.
+Ultimate gain (Kp) Ku = 2.2
+
+Aflæser periode til 5 samples, dvs. 50ms
+Tu er 50ms.
+
+G: (Classic PID) (Vi bruger denne)
+Kp = 0.6 * Ku = 1.32
+Ki = 1.2 * (Ku / Tu) = 52.8
+Kd = 0.075 * Ku * Tu = 0.008
+
+Wow den er flot.
+
+H: (Some overshoot)
+Kp = 0.33 * Ku = 0.726
+Ki = 0.66 * (Ku / Tu) = 29.04
+Kd = 0.11 * Ku * Tu = 0.012
+
+Den er også fin
+
+
+I: Tester nu med Velocity control, som bruger RPM internt
+bruger classic PID værdier fra G
+
+Ser rigtig fin ud, kan logges

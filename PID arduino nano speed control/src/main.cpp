@@ -25,7 +25,7 @@ const double SAMPLE_TIME = 0.001; // 1ms sample time
 #define PI 3.1415926535897932384626433832795
 
 // Variables
-double currentRPM = 1;
+double currentRPM = 0.001;
 double currentTorque = 1; 
 double currentVelocity = 1;
 double motorCurrent = 1;
@@ -37,7 +37,7 @@ int step = 0;
 // Objects
 MotorPID pid(0.3, 5, 0.0, 0, SAMPLE_TIME); // Example gains and setpoint
 TimerInterrupt timer1;
-MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 5);
+MotorSensor motorSensor(SENSOR_PIN, 5, CURRENT_SENSE, 10);
 ArduinoInitializer arduinoInitializer(SENSOR_PIN, PWM_PIN, ENABLE_PIN, DIR_PIN, &motorSensor, &timer1);
 I2CSlave i2cSlave(currentVelocity, currentTorque, currentRPM, motorCurrent);
 
@@ -54,13 +54,13 @@ void controlLoop() {
 
     // Torque control
     motorCurrent = motorSensor.getFilteredCurrent(motorSensor.getMotorCurrent());
-    currentTorque = 0.0981 * motorCurrent;
+    currentTorque = 98.1 * SCALE_FACTOR_INTERNAL_TORQUE * motorCurrent;
 
     // Compute PID based on mode
     double output = 0;
     switch (i2cSlave.getCtrlMode()) {
         case 0 : // Speed control
-            output = pid.compute(currentVelocity);
+            output = pid.compute(currentRPM);
             break;
 
         case 1 : // Torque control
