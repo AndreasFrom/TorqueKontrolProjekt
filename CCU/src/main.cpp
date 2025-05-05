@@ -16,6 +16,7 @@
 
 
 #define SEND_DATA_SERIAL false
+#define AUTO_STOP_TIME 20 // seconds
 
 const double SAMPLE_FREQ = 75.0; //100Hz, 10ms sample time
 // WiFi Config
@@ -107,7 +108,7 @@ void handleClientCommunication(WiFiClient &client);
 void processClientMessage(String message);
 
 void timerISR() {
-    if ((millis() - logging_time_start) >= (1000*10))
+    if ((millis() - logging_time_start) >= (1000*AUTO_STOP_TIME) && is_active == true)
     {
         is_active = false;
         sdLogger.close();
