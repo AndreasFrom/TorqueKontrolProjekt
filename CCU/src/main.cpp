@@ -9,6 +9,7 @@
 #include "i2c_master.h"
 #include "SimpleKalmanFilter.h"
 #include "kinematic.h"
+#include "torqueControl.h"
 #include "ICO_algo.h"
 #include "math.h"
 #include "filter.h"
@@ -80,8 +81,15 @@ float setpoint = 0;
 float setpoint_radius = 0.5; 
 
 double actual_velocity = 0; // Initialize actual velocity
+double actual_velocity_x = 0; // Initialize actual velocity in x direction
+double actual_velocity_y = 0; // Initialize actual velocity in y direction
 
 double logging_time_start = 0; // Initialize logging time
+
+double setpoint_yaw_degs = 0;
+double updated_velocity = 0;
+double error_yaw = 0;
+double error_velocity = 0;
 
 // int setpoint0 = 711; // left front
 // int setpoint1 = 916.9; // right front
@@ -102,6 +110,10 @@ SimpleKalmanFilter accelFilterZ(0.01766, 1.0, 0.01);
 Kinematic kinematic_model;
 Velocities_acker wheel_RPMs; // Struct to hold wheel velocities
 Velocities_acker Wheel_velocities; // Struct to hold wheel velocities
+
+// Torque control
+TorqueControl torque_control;
+Currents currents; // Struct to hold currents for each wheel
 
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
@@ -148,12 +160,13 @@ void timerISR() {
         Serial.print("Filtered Accel Y: "); Serial.print(filtered_accel_y); Serial.println(" m/s²");
         #endif
 
-        
-        actual_velocity += filtered_accel_y * (1.0 / SAMPLE_FREQ); // Integrate acceleration over time
+        actual_velocity_x += filtered_accel_x * (1.0 / SAMPLE_FREQ);
+        actual_velocity_y += filtered_accel_y * (1.0 / SAMPLE_FREQ);
 
-        // If setpoint is velocity
+        actual_velocity = sqrt(actual_velocity_x * actual_velocity_x + actual_velocity_y * actual_velocity_y); // Calculate the magnitude of the velocity vector
+
         double setpoint_yaw_degs = (setpoint / setpoint_radius) * 180/PI;
-
+        
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Setpoint: "); Serial.print(setpoint); Serial.println(" m/s, ");
         Serial.print("Setpoint Yaw: "); Serial.print(setpoint_yaw); Serial.println(" deg/s, ");
@@ -161,8 +174,8 @@ void timerISR() {
         #endif
         
         //double error_yaw = setpoint_yaw - filtered_gyro_z; // Used for datalogging
-        double error_yaw = ico_yaw.getError(); // Used for datalogging
-        double error_velocity = setpoint - actual_velocity;
+        error_yaw = ico_yaw.getError(); // Used for datalogging
+        error_velocity = setpoint - actual_velocity;
 
         double yaw_input = constrain(filtered_gyro_z, 0, 500);
         //double updated_yaw = ico_yaw.computeChange(yaw_input, yaw_input , setpoint_yaw_degs);
@@ -171,29 +184,52 @@ void timerISR() {
         //updated_yaw = constrain(updated_yaw, 0, 3000); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
         double updated_yaw = 1;
-        double updated_velocity = ico_yaw.computeChange(yaw_input, yaw_input, setpoint_yaw_degs); // Constrain updated_velocity between 0 and 300 deg/s
+        updated_velocity = ico_yaw.computeChange(yaw_input, yaw_input, setpoint_yaw_degs); // Constrain updated_velocity between 0 and 300 deg/s
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
         Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
         #endif
 
-        //kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
-        kinematic_model.getVelocities_acker(updated_velocity, 0.5, Wheel_velocities); // 0.5 radius of circle
+        switch (mode) {
+            case 0: {//   Velocity          
+                // If setpoint is velocity
+                
+        
+                //kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
+                kinematic_model.getVelocities_acker(updated_velocity, 0.5, Wheel_velocities); // 0.5 radius of circle
+                
+                #ifdef SEND_DATA_CONTROL_SERIAL
+                Serial.print("Wheel Velocities: ");
+                Serial.print("Left Front: "); Serial.print(Wheel_velocities.v_left_front); Serial.println(" m/s, ");
+                Serial.print("Right Front: "); Serial.print(Wheel_velocities.v_right_front); Serial.println(" m/s, ");
+                Serial.print("Left Rear: "); Serial.print(Wheel_velocities.v_left_rear); Serial.println(" m/s, ");
+                Serial.print("Right Rear: "); Serial.print(Wheel_velocities.v_right_rear); Serial.println(" m/s");
+                #endif
+        
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear); 
+                break; 
+            }
+            case 1: {// Torque
+                torque_control.calculateCurrents(updated_velocity, currents);
 
-        #ifdef SEND_DATA_CONTROL_SERIAL
-        Serial.print("Wheel Velocities: ");
-        Serial.print("Left Front: "); Serial.print(Wheel_velocities.v_left_front); Serial.println(" m/s, ");
-        Serial.print("Right Front: "); Serial.print(Wheel_velocities.v_right_front); Serial.println(" m/s, ");
-        Serial.print("Left Rear: "); Serial.print(Wheel_velocities.v_left_rear); Serial.println(" m/s, ");
-        Serial.print("Right Rear: "); Serial.print(Wheel_velocities.v_right_rear); Serial.println(" m/s");
-        #endif
-
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
-
+                double motor_constant = 0.098;
+                
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, currents.current_left_front * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, currents.current_right_front * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, currents.current_left_rear * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, currents.current_right_rear * motor_constant);
+                break;
+            }
+            default:
+                //do nothing
+                break;
+        }
+        
+        
         MUData MU0;
         MUData MU1;
         MUData MU2;
