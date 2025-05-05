@@ -40,10 +40,11 @@ public:
      * @brief Calculate the Ackermann steering velocities for a given set velocity and angular velocity.
      * 
      * @param v_set The desired linear velocity of the vehicle (m/s).
-     * @param omega_set The desired angular velocity of the vehicle (rad/s).
+     * @param omega_set The desired angular velocity of the vehicle (deg/s).
      * @param velocities The structure to store the calculated velocities for each wheel (m/s).
      */
     void getVelocities_acker_omega(float v_set, float omega_set, Velocities_acker & velocities);
+    
 
 private:
 };

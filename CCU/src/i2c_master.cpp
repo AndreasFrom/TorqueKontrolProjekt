@@ -46,13 +46,13 @@ bool I2CMaster::sendSetpoint(uint8_t slave_adress, float setpoint) {
     switch (_mode)
     {
     case 0:
-        Wire.write(byte(setpoint * SCALE_FACTOR_SPEED));
+        Wire.write(byte(constrain(setpoint * SCALE_FACTOR_SPEED, 0, 255)));
         break;
     case 1:
-        Wire.write(byte(setpoint * SCALE_FACTOR_TORQUE));
+        Wire.write(byte(constrain(setpoint * SCALE_FACTOR_TORQUE, 0, 255)));
         break;
     default:
-        Wire.write(byte(setpoint * SCALE_FACTOR_RPM));
+        Wire.write(byte(constrain(setpoint * SCALE_FACTOR_RPM, 0, 255)));
         break;
     }
     Wire.endTransmission();
