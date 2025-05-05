@@ -7,7 +7,7 @@ from datetime import datetime
 
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
-TCP_IP = "192.168.137.67"
+TCP_IP = "192.168.137.239"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables

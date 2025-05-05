@@ -216,7 +216,7 @@ void timerISR() {
             case 1: {// Torque
                 torque_control.calculateCurrents(updated_velocity, currents);
 
-                double motor_constant = 0.098;
+                double motor_constant = 98.1;
                 
                 i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, currents.current_left_front * motor_constant);
                 i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, currents.current_right_front * motor_constant);
