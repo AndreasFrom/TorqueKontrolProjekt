@@ -12,7 +12,6 @@ if not file_list:
     print("No CSV files found. Check the path or pattern.")
 else:
     current_columns = ['MU0current', 'MU1current', 'MU2current', 'MU3current']
-    all_columns = current_columns + ['TotalCurrent']
     data = []
     filenames = []
 
@@ -27,6 +26,8 @@ else:
 
             avg = df[current_columns].mean()
             avg['TotalCurrent'] = avg.sum()
+            avg['GroupA'] = avg['MU0current'] + avg['MU2current']
+            avg['GroupB'] = avg['MU1current'] + avg['MU3current']
 
             data.append(avg)
             filenames.append(os.path.basename(file))
@@ -43,12 +44,16 @@ else:
     else:
         df_plot = pd.DataFrame(data, index=filenames)
 
+        all_columns = ['MU0current', 'MU1current', 'MU2current', 'MU3current', 'TotalCurrent', 'GroupA', 'GroupB']
+
         color_map = {
             'MU0current': '#1f77b4',
             'MU1current': '#ff7f0e',
             'MU2current': '#2ca02c',
             'MU3current': '#d62728',
-            'TotalCurrent': '#9467bd'
+            'TotalCurrent': '#9467bd',
+            'GroupA': '#8c564b',
+            'GroupB': '#e377c2'
         }
 
         fig = go.Figure()
@@ -64,8 +69,8 @@ else:
                 marker_color=color_map[col]
             ))
 
-        # Add linear regression lines + annotations
-        for i, col in enumerate(all_columns):
+        # Add linear regression lines + equation annotations
+        for col in all_columns:
             y_vals = df_plot[col].values
             coeffs = np.polyfit(x_vals, y_vals, 1)
             y_fit = np.polyval(coeffs, x_vals)
@@ -81,7 +86,6 @@ else:
                 line=dict(dash='dash', color=color_map[col])
             ))
 
-            # Add annotation for this trendline
             annotations.append(dict(
                 x=filenames[-1],
                 y=y_fit[-1],
@@ -92,17 +96,16 @@ else:
             ))
 
         fig.update_layout(
-            title='Average Currents per File (with Trendlines)',
+            title='Average Currents per File (with Group Trends and Formulas)',
             xaxis_title='CSV File',
             yaxis_title='Current',
             barmode='group',
             legend_title='Current Type',
             annotations=annotations,
-            height=600,
-            width=1000
+            height=700,
+            width=1100
         )
 
-        # Save and open
         output_path = "interactive_currents_plot.html"
         fig.write_html(output_path)
         print(f"\nInteractive plot saved as: {output_path}")
