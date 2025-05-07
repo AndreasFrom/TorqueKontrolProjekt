@@ -8,6 +8,7 @@
 class Filter {
 public:
     virtual double filter(double input) = 0;
+    virtual std::string getType() = 0; 
     virtual void reset() = 0;
     virtual ~Filter() {}
 };
@@ -20,6 +21,7 @@ private:
 
 public:
     FIRFilter(const std::vector<double>& coeffs);
+    std::string getType() override { return "FIR"; } 
     double filter(double input) override;
     void reset() override;
 };
@@ -32,6 +34,7 @@ private:
 
 public:
     IIRFilter(double b_coeff, double a_coeff);
+    std::string getType() override { return "IIR"; }
     double filter(double input) override;
     void reset() override;
 };
@@ -43,6 +46,7 @@ private:
 
 public:
     ExponentialDecayFilter(double alpha_value);
+    std::string getType() override { return "ExponentialDecay"; }
     double filter(double input) override;
     void reset() override;
 };
@@ -50,6 +54,7 @@ public:
 class PassThroughFilter : public Filter {
 public:
     double filter(double input) override { return input; }
+    std::string getType() override { return "PassThrough"; }
     void reset() override {}
 };
 
@@ -61,6 +66,8 @@ private:
     double dt; 
 public:
     PIDFilter(double p, double i, double d, double time_step);
+    std::string getType() override { return "PID"; }
+    void setParameters(double p, double i, double d);
 
     double filter(double input) override;
 
