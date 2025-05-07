@@ -360,6 +360,27 @@ void processClientMessage(String message) {
                 Serial.println("I2C communication failed!");
             }
         }
+        
+        if (mode == 0) {
+            // If mode is velocity, set pid reflex, if reflex filter is PID
+            if (reflex_move.getFilter()->getType() == "PID") {
+                static_cast<PIDFilter*>(reflex_move.getFilter())->setParameters(1.24f, 5.27f, 0.0f);
+            } else {
+                Serial.println("Reflex filter is not PID, no PID reflex set.");
+                return;
+            }
+        } else if (mode == 1) {
+            // If mode is torque, set pid reflex
+            if (reflex_yaw.getFilter()->getType() == "PID") {
+                static_cast<PIDFilter*>(reflex_yaw.getFilter())->setParameters(19.35f, 45.98f, 0.0f);
+            } else {
+                Serial.println("Reflex filter is not PID, no PID reflex set.");
+                return;
+            }
+        } else {
+            Serial.println("Mode not 0 or 1, no PID reflex set.");
+            return;
+        }
 
         kinematic_model.getVelocities_acker(setpoint, setpoint_radius, wheel_RPMs);
         Serial.print("M0: "); Serial.println(wheel_RPMs.v_left_front);
