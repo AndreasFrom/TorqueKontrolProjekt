@@ -26,8 +26,8 @@ else:
 
             avg = df[current_columns].mean()
             avg['TotalCurrent'] = avg.sum()
-            avg['GroupA'] = avg['MU0current'] + avg['MU2current']
-            avg['GroupB'] = avg['MU1current'] + avg['MU3current']
+            #avg['GroupA'] = avg['MU0current'] + avg['MU2current']
+            #avg['GroupB'] = avg['MU1current'] + avg['MU3current']
 
             data.append(avg)
             filenames.append(os.path.basename(file))
@@ -44,7 +44,7 @@ else:
     else:
         df_plot = pd.DataFrame(data, index=filenames)
 
-        all_columns = ['MU0current', 'MU1current', 'MU2current', 'MU3current', 'TotalCurrent', 'GroupA', 'GroupB']
+        all_columns = ['MU0current', 'MU1current', 'MU2current', 'MU3current', 'TotalCurrent']#, 'GroupA', 'GroupB']
 
         color_map = {
             'MU0current': '#1f77b4',

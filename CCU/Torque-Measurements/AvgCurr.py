@@ -61,11 +61,11 @@ else:
         regression_line = np.polyval(coeffs, x)  # Compute regression line
 
         # Plot the regression line
-        plt.plot(x, regression_line, color='red', linestyle='--', label='Linear Regression (Sum)')
+        #plt.plot(x, regression_line, color='red', linestyle='--', label='Linear Regression (Sum)')
 
         # Add regression formula as text on the plot
-        formula = f"y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}"
-        plt.text(0.5, max(y) + 0.1, formula, color='red', fontsize=12, ha='center')
+        #formula = f"y = {coeffs[0]:.2f}x + {coeffs[1]:.2f}"
+        #plt.text(0.5, max(y) + 0.1, formula, color='red', fontsize=12, ha='center')
 
         # Adjust legend position to avoid overlapping
         plt.legend(loc='upper left', bbox_to_anchor=(0.01, 1.0))
