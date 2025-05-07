@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-video_folder = "../../Datasets/b5-1/"
+video_folder = "../../Datasets/b6-1/"
 
 def process_video(video_file):
     """Runs analyze_video.py on a single video file."""

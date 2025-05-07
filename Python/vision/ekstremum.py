@@ -153,7 +153,7 @@ def plot_distances_2d_time(
     # Time-based moving average (using pandas for easy time windowing)
     df = pd.DataFrame({'time': times_sorted, 'diameter': diameters_sorted})
     window_size = max(3, int(0.1 * len(df)))  # 10% of data points or min 3
-    df['moving_avg'] = df['diameter'].rolling(window=window_size, center=True).mean()
+    # df['moving_avg'] = df['diameter'].rolling(window=window_size, center=True).mean()
 
     # Plotting
     plt.figure(figsize=(14, 7))
@@ -164,8 +164,8 @@ def plot_distances_2d_time(
     
 
     # Moving average
-    plt.plot(df['time'], df['moving_avg'], 
-            'g-', linewidth=2, label=f'Moving Average (n={window_size})')
+    #plt.plot(df['time'], df['moving_avg'], 
+    #        'g-', linewidth=2, label=f'Moving Average (n={window_size})')
     
     plt.xlabel("Time (s)")
     plt.ylabel("Diameter (m)")
