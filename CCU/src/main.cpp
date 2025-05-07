@@ -122,13 +122,16 @@ void processClientMessage(String message);
 void timerISR() {
     if ((millis() - logging_time_start) >= (1000*AUTO_STOP_TIME) && is_active == true)
     {
-        is_active = false;
-        sdLogger.close();
-        // Reset all setpoints
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, 0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, 0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, 0);
+
+        sdLogger.close();
+        is_active = false;
+        
+        // Reset all setpoints
+        
 
         //Serial.println("Logging stopped!");
     }

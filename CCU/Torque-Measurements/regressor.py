@@ -15,6 +15,7 @@ mymodel = list(map(myfunc, x))
 
 plt.xlabel("Velocity")
 plt.ylabel("Current")
+plt.grid()
 
 equation = f"y = {slope:.4f}x + {intercept:.4f}"
 plt.text(0.5, max(y) - 0.05, equation, color='Blue', fontsize=12)
