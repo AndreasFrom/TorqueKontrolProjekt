@@ -66,6 +66,8 @@ I2CMaster i2cMaster;
 
 // IMU
 DFRobot_BMX160 bmx160;
+sBmx160SensorData_t Ogyro_offset = {0, 0, 0};  
+sBmx160SensorData_t Oaccel_offset = {0, 0, 0}; 
 
 bool is_active = false; // Flag til logging
 
@@ -118,6 +120,7 @@ Currents currents; // Struct to hold currents for each wheel
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
 void processClientMessage(String message);
+void calbrateIMU(void);
 
 void timerISR() {
     if ((millis() - logging_time_start) >= (1000*AUTO_STOP_TIME) && is_active == true)
@@ -151,6 +154,12 @@ void timerISR() {
         //bmx160.getGyroACC(&Ogyro, &Oaccel);
         bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
+        Oaccel.x -= Oaccel_offset.x; // Offset for accelerometer
+        Oaccel.y -= Oaccel_offset.y; // Offset for accelerometer
+        Oaccel.z -= Oaccel_offset.z; // Offset for accelerometer
+        //Ogyro.x -= Ogyro_offset.x; // Offset for gyroscope
+        //Ogyro.y -= Ogyro_offset.y; // Offset for gyroscope
+        //Ogyro.z -= Ogyro_offset.z; // Offset for gyroscope
 
         // Apply Kalman filtering
         float filtered_gyro_z = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
@@ -327,6 +336,9 @@ void processClientMessage(String message) {
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, 0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, 0);
         Serial.println("Logging stopped!");
+
+        calbrateIMU(); // Calibrate IMU after stopping logging
+        Serial.println("IMU calibrated!");
         
     } else if (message.startsWith("PID:")) {
         client.println("ACK:PID");
@@ -438,4 +450,41 @@ void processClientMessage(String message) {
         ico_yaw.resetICO();
         ico_move.resetICO();
     }
+}
+
+void calbrateIMU(void)
+{// If not active, calibrate the IMU
+    sBmx160SensorData_t Ogyro = {0, 0, 0};  
+    sBmx160SensorData_t Oaccel = {0, 0, 0}; 
+    sBmx160SensorData_t Omagn = {0, 0, 0}; 
+
+    float gyro_x_sum = 0;
+    float gyro_y_sum = 0;
+    float gyro_z_sum = 0;
+
+    float accel_x_sum = 0;
+    float accel_y_sum = 0;
+    float accel_z_sum = 0;
+
+    for (int i = 0; i < 100; i++) {
+        bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
+        gyro_x_sum += Ogyro.x;
+        gyro_y_sum += Ogyro.y;
+        gyro_z_sum += Ogyro.z;
+
+        accel_x_sum += Oaccel.x;
+        accel_y_sum += Oaccel.y;
+        accel_z_sum += Oaccel.z;
+
+        delay(5); // Wait for 5ms between samples
+    }
+    double gyro_x_offset = gyro_x_sum / 100;
+    double gyro_y_offset = gyro_y_sum / 100;
+    double gyro_z_offset = gyro_z_sum / 100;
+    double accel_x_offset = accel_x_sum / 100;
+    double accel_y_offset = accel_y_sum / 100;
+    double accel_z_offset = accel_z_sum / 100;
+
+    Ogyro_offset = {gyro_x_offset, gyro_y_offset, gyro_z_offset};
+    Oaccel_offset = {accel_x_offset, accel_y_offset, 9.82 - accel_z_offset};
 }
