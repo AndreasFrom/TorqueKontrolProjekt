@@ -236,6 +236,26 @@ void timerISR() {
                 i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, currents.current_right_rear * motor_constant);
                 break;
             }
+            case 2: {// RPM
+                // If setpoint is RPM
+                kinematic_model.getVelocities_acker(setpoint, setpoint_radius, wheel_RPMs);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, wheel_RPMs.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, wheel_RPMs.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, wheel_RPMs.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, wheel_RPMs.v_right_rear); 
+                break; 
+            }
+            case 3: { // Disable ICO algorithms and use velocity control
+                // If setpoint is velocity, set pid reflex, if reflex filter is PID
+                
+                kinematic_model.getVelocities_acker(setpoint, 0.5, Wheel_velocities); // 0.5 radius of circle
+
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
+                break; 
+            }
             default:
                 //do nothing
                 break;
@@ -366,8 +386,16 @@ void processClientMessage(String message) {
         Serial.print(" Ki: "); Serial.print(ki);
         Serial.print(" Kd: "); Serial.println(kd);
 
+        int mu_mode = 0;
+        if (mode <= 2)
+            mu_mode = mode;
+        else if (mode == 3) //If 3 disable, ico algorithms and use velocity control
+            mu_mode = 0;
+        else if (mode == 4) //If 4 disable, ico algorithms and use Torque control
+            mu_mode = 1;
+
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, mode, kp, ki, kd);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, mu_mode, kp, ki, kd);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
