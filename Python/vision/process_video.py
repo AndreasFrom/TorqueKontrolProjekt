@@ -1,7 +1,7 @@
 import os
 import subprocess
 
-video_folder = "../../Datasets/b6-1/"
+video_folder = "../../Datasets/precision_tracking/"
 
 def process_video(video_file):
     """Runs analyze_video.py on a single video file."""
@@ -18,3 +18,6 @@ if __name__ == "__main__":
     # Run vision_data_plot.py after all videos are processed
     subprocess.run(["python", "repair_data.py"], check=True)
     subprocess.run(["python", "vision_data_plot.py"], check=True)
+    subprocess.run(["python", "3dplot_position.py"], check=True)
+    subprocess.run(["python", "x_y_pointplot.py"], check=True)
+    subprocess.run(["python", "ekstremum.py"], check=True)

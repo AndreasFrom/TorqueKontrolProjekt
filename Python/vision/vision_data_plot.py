@@ -17,24 +17,16 @@ def plot_marker_data(csv_path, output_plot_path):
     seconds = frames*1/fps
     
     # Create plots
-    fig_pos_time, axes = plt.subplots(2, 1, figsize=(10, 8))
+    fig_pos_time, axes = plt.subplots(1, 1, figsize=(10, 8))
     
     # Plot X and Y positions
-    axes[0].plot(seconds, x_positions, label='X Position', color='b')
-    axes[0].plot(seconds, y_positions, label='Y Position', color='g')
-    axes[0].set_xlabel("s")
-    axes[0].set_ylabel("Position (m)")
-    axes[0].set_title("Marker 10 Position Over Time")
-    axes[0].legend()
-    axes[0].grid()
-    
-    # Plot Distance from Circle
-    axes[1].plot(seconds, distances, label='Distance from Circle', color='r')
-    axes[1].set_xlabel("s")
-    axes[1].set_ylabel("Distance (m)")
-    axes[1].set_title("Marker 10 Distance from Circle Over Time")
-    axes[1].legend()
-    axes[1].grid()
+    axes.plot(seconds, x_positions, label='X Position', color='b')
+    axes.plot(seconds, y_positions, label='Y Position', color='g')
+    axes.set_xlabel("s")
+    axes.set_ylabel("Position (m)")
+    axes.set_title("Marker 10 Position Over Time")
+    axes.legend()
+    axes.grid()
     
     # Save
     fig_pos_time.tight_layout()
