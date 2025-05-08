@@ -357,9 +357,9 @@ def main():
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         parameters = cv2.aruco.DetectorParameters()
 
-        parameters.adaptiveThreshWinSizeMin = 5  # Slightly larger window for better local contrast adaptation
+        parameters.adaptiveThreshWinSizeMin = 3  # Slightly larger window for better local contrast adaptation
         parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
-        parameters.adaptiveThreshConstant = 20  # Increased value to handle distant markers
+        parameters.adaptiveThreshConstant = 10  # Increased value to handle distant markers
 
         parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
         parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
