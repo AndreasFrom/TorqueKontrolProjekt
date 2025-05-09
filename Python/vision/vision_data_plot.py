@@ -1,6 +1,8 @@
 import matplotlib.pyplot as plt
 import pandas as pd
 import os
+from scipy.signal import savgol_filter
+import numpy as np
 
 def plot_marker_data(csv_path, output_plot_path):
     # Load data
@@ -11,42 +13,60 @@ def plot_marker_data(csv_path, output_plot_path):
     frames = df["Frame"]
     x_positions = df["X Position (m)"]
     y_positions = df["Y Position (m)"]
-    speed = df["Speed (m/s)"]
-
     distances = df["Distance from Circle (m)"]
-    seconds = frames*1/fps
-    
+    seconds = frames * 1 / fps
+
+    # Smooth positions
+    window_size = int(fps.iloc[0] * 0.5)
+    if window_size % 2 == 0:
+        window_size += 1  # window length must be odd for savgol_filter
+
+    smoothed_x = savgol_filter(x_positions, window_length=window_size, polyorder=2)
+    smoothed_y = savgol_filter(y_positions, window_length=window_size, polyorder=2)
+
+    # Recalculate speed from smoothed positions
+    dx = np.gradient(smoothed_x)
+    dy = np.gradient(smoothed_y)
+    smoothed_speed = np.sqrt(dx**2 + dy**2) * fps.iloc[0]
+
     # Create plots
     fig_pos_time, axes = plt.subplots(1, 1, figsize=(10, 8))
     
     # Plot X and Y positions
-    axes.plot(seconds, x_positions, label='X Position', color='b')
-    axes.plot(seconds, y_positions, label='Y Position', color='g')
+    axes.plot(seconds, x_positions, label='X Position', color='b', alpha=0.4)
+    axes.plot(seconds, y_positions, label='Y Position', color='g', alpha=0.4)
+    axes.plot(seconds, smoothed_x, label='Smoothed X', color='b')
+    axes.plot(seconds, smoothed_y, label='Smoothed Y', color='g')
     axes.set_xlabel("s")
     axes.set_ylabel("Position (m)")
     axes.set_title("Marker 10 Position Over Time")
     axes.legend()
     axes.grid()
     
-    # Save
     fig_pos_time.tight_layout()
     fig_pos_time.savefig(output_plot_path.replace('.png', '_position.png'))
     plt.close(fig_pos_time)
     
     # Create speed plot
+        # Create speed plot
     fig_speed, axes = plt.subplots(2, 1, figsize=(10, 4))
-    
-    # Plot speed
-    axes[0].plot(seconds, speed, label='Speed', color='purple')
+
+    # Compute original speed from raw positions
+    raw_dx = np.gradient(x_positions)
+    raw_dy = np.gradient(y_positions)
+    raw_speed = np.sqrt(raw_dx**2 + raw_dy**2) * fps.iloc[0]
+
+    # Plot raw and smoothed speed
+    axes[0].plot(seconds, raw_speed, label='Raw Speed', color='purple', alpha=0.4)
+    axes[0].plot(seconds, smoothed_speed, label='Smoothed Speed', color='black')
     axes[0].set_xlabel("s")
     axes[0].set_ylabel("Speed (m/s)")
     axes[0].set_title("Marker 10 Speed Over Time")
     axes[0].legend()
     axes[0].grid()
-    
-    # Plot moving average speed
-    window_size = int(fps.iloc[0] * 0.5)  # Set window size to 1 second based on FPS
-    moving_avg_speed = speed.rolling(window=window_size).mean()
+
+    # Moving average of smoothed speed
+    moving_avg_speed = pd.Series(smoothed_speed).rolling(window=window_size).mean()
     axes[1].plot(seconds, moving_avg_speed, label='Moving Average Speed', color='orange')
     axes[1].set_xlabel("s")
     axes[1].set_ylabel("Speed (m/s)")
@@ -54,10 +74,9 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[1].legend()
     axes[1].grid()
     
-    # Save
     fig_speed.tight_layout()
     fig_speed.savefig(output_plot_path.replace('.png', '_speed.png'))
-    plt.close(fig_pos_time)
+    plt.close(fig_speed)
 
     
     # Plot positions
@@ -86,7 +105,8 @@ def plot_marker_data(csv_path, output_plot_path):
     # Save plot
     plt.tight_layout()
     plt.savefig(output_plot_path.replace('.png', '_trajectory.png'))
-    plt.close()  
+    plt.close()
+    
     print(f"Plots saved to {os.path.dirname(output_plot_path)}")
 
 if __name__ == "__main__":
