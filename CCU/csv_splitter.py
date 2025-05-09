@@ -32,4 +32,4 @@ def split_csv_by_header(filename, header_prefix='timestamp'):
                 writer = csv.writer(outfile)
                 writer.writerows(current_rows)
 
-split_csv_by_header('DATA.CSV')
+split_csv_by_header('v05-IT.csv')
