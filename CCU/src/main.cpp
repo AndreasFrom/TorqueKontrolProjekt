@@ -248,6 +248,16 @@ void timerISR() {
             case 3: { // Disable ICO algorithms and use velocity control
                 // If setpoint is velocity, set pid reflex, if reflex filter is PID
                 
+                kinematic_model.getVelocities_acker(setpoint, 0.5, Wheel_velocities); // 0.5 radius of circle
+
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
+                break; 
+            }
+            case 4: { // Disable ICO algorithms and use torque control
+                // If setpoint is torque, set pid reflex
                 torque_control.calculateCurrents(setpoint, currents);
 
                 double motor_constant = 98.1;
@@ -257,6 +267,7 @@ void timerISR() {
                 i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, currents.current_left_rear * motor_constant);
                 i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, currents.current_right_rear * motor_constant);
                 break; 
+                break;
             }
             default:
                 //do nothing
