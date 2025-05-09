@@ -425,7 +425,7 @@ void processClientMessage(String message) {
         } else if (mode == 1) {
             // If mode is torque, set pid reflex
             if (reflex_yaw.getFilter()->getType() == "PID") {
-                static_cast<PIDFilter*>(reflex_yaw.getFilter())->setParameters(19.35f, 45.98f, 0.0f);
+                static_cast<PIDFilter*>(reflex_yaw.getFilter())->setParameters(1.24f, 5.27f, 0.0f); // 19.35f, 45.98f, 0.0f Legacy
             } else {
                 Serial.println("Reflex filter is not PID, no PID reflex set.");
                 return;
