@@ -8,6 +8,9 @@ omega_0 = 0.0025
 omega_1 = 0
 µ = 0.00000001
 
+Torque: Kp = 0.9, Ki = 36, Kd = 0.006
+Speed: Kp = 1.32, Ki = 52.8, Kd = 0.008
+
 Test A7-1 where we test effeciency
 
 v05-S → x,A,B,C,D,E
