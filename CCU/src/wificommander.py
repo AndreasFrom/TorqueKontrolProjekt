@@ -219,7 +219,7 @@ label_setpoint = tk.Label(root, text="Setpoint:")
 label_setpoint.grid(row=4, column=0, padx=10, pady=5, sticky="w")
 entry_setpoint = tk.Entry(root)
 entry_setpoint.grid(row=4, column=1, padx=10, pady=5, sticky="w")
-entry_setpoint.insert(0, "0.5")
+entry_setpoint.insert(0, "0.75")
 
 label_mode = tk.Label(root, text="Mode:")
 label_mode.grid(row=5, column=0, padx=10, pady=5, sticky="w")

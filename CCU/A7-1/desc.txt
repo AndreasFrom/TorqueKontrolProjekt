@@ -12,13 +12,13 @@ Test A7-1 where we test effeciency
 
 v05-S → x,A,B,C,D,E
 v05-IS → cal,A,cal,B,cal,C,cal,D,cal,E
-v05-T → 
-v05-IT → cal,A,cal,B,x,x,cal,C,cal,D,cal,E
+v05-T → A,B,C,D,E
+v05-IT → cal,A,cal,B,cal,C,cal,D,cal,E
 
 v075-S → A,B,C,D,E
 v075-IS → cal,A,cal,B,cal,C,cal,D,x,x,cal,E
-v075-T →
-v075-IT → 
+v075-T → A,B,C,D,E
+v075-IT → x,x,cal,A,cal,B,cal,C,cal,D,x,x,x,x,cal,E
 
 v10-S →
 v10-IS →
