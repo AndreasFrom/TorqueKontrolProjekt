@@ -7,7 +7,7 @@ from datetime import datetime
 
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
-TCP_IP = "192.168.137.69"
+TCP_IP = "192.168.137.249"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -201,19 +201,19 @@ label_kp = tk.Label(root, text="Kp:")
 label_kp.grid(row=1, column=0, padx=10, pady=5, sticky="w")
 entry_kp = tk.Entry(root)
 entry_kp.grid(row=1, column=1, padx=10, pady=5, sticky="w")
-entry_kp.insert(0, "1.32")
+entry_kp.insert(0, "0.9")
 
 label_ki = tk.Label(root, text="Ki:")
 label_ki.grid(row=2, column=0, padx=10, pady=5, sticky="w")
 entry_ki = tk.Entry(root)
 entry_ki.grid(row=2, column=1, padx=10, pady=5, sticky="w")
-entry_ki.insert(0, "52.8")
+entry_ki.insert(0, "36")
 
 label_kd = tk.Label(root, text="Kd:")
 label_kd.grid(row=3, column=0, padx=10, pady=5, sticky="w")
 entry_kd = tk.Entry(root)
 entry_kd.grid(row=3, column=1, padx=10, pady=5, sticky="w")
-entry_kd.insert(0, "0.008")
+entry_kd.insert(0, "0.006")
 
 label_setpoint = tk.Label(root, text="Setpoint:")
 label_setpoint.grid(row=4, column=0, padx=10, pady=5, sticky="w")
