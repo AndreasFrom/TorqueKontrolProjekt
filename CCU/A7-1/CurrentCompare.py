@@ -6,10 +6,10 @@ import os
 
 # Define folder patterns and labels
 folder_patterns = [
-    ('A7-1/v0.5-Speed/v05-S-*.csv', 'S'),
-    ('A7-1/v0.5-ICOSpeed/v05-IS-*.csv', 'IS'),
-    ('A7-1/v0.5-Torque/v05-T-*.csv', 'T'),
-    ('A7-1/v0.5-ICOTorque/v05-IT-*.csv', 'IT')
+    ('A7-1/v0.5-Speed/v05-S-*.csv', 'Speed'),
+    ('A7-1/v0.5-ICOSpeed/v05-IS-*.csv', 'ICO Speed'),
+    ('A7-1/v0.5-Torque/v05-T-*.csv', 'Torque'),
+    ('A7-1/v0.5-ICOTorque/v05-IT-*.csv', 'ICO Torque')
 ]
 
 current_columns = ['MU0current', 'MU1current', 'MU2current', 'MU3current']
@@ -57,7 +57,7 @@ plt.grid(axis='y')
 plt.ylim(0.20,0.40)
 
 # Add info box for each folder
-for i, label in enumerate(['S', 'IS', 'T', 'IT']):
+for i, label in enumerate(['Speed', 'ICO Speed', 'Torque', 'ICO Torque']):
     if label in folder_stats:
         stats = folder_stats[label]
         # Find the y-position for the box (above the max point for this label)
