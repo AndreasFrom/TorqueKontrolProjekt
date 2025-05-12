@@ -26,7 +26,7 @@ for pattern, label in folder_patterns:
     currents = []
     for file in file_list:
         try:
-            df = pd.read_csv(file)
+            df = pd.read_csv(file, skiprows=range(1,500))
             df.columns = df.columns.str.strip()
             if not all(col in df.columns for col in current_columns):
                 print(f"{os.path.basename(file)}: missing required columns, skipping.")
@@ -50,7 +50,7 @@ for pattern, label in folder_patterns:
 # Scatter plot: 5 points per folder label
 plt.figure(figsize=(8, 5))
 plt.scatter(x_labels, y_values, color='blue', s=100, alpha=0.7)
-plt.title('Average Current Vs control modes')
+plt.title('Average Current Vs control modes v=0.5m/s')
 plt.xlabel('Control modes')
 plt.ylabel('Average Current (A)')
 plt.grid(axis='y')
