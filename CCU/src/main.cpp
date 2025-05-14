@@ -256,6 +256,19 @@ void timerISR() {
                 i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
                 break; 
             }
+            case 4: { // Disable ICO algorithms and use torque control
+                // If setpoint is torque, set pid reflex
+                torque_control.calculateCurrents(setpoint, currents);
+
+                double motor_constant = 98.1;
+                
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, currents.current_left_front * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, currents.current_right_front * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, currents.current_left_rear * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, currents.current_right_rear * motor_constant);
+                break; 
+                break;
+            }
             default:
                 //do nothing
                 break;
@@ -412,7 +425,7 @@ void processClientMessage(String message) {
         } else if (mode == 1) {
             // If mode is torque, set pid reflex
             if (reflex_yaw.getFilter()->getType() == "PID") {
-                static_cast<PIDFilter*>(reflex_yaw.getFilter())->setParameters(19.35f, 45.98f, 0.0f);
+                static_cast<PIDFilter*>(reflex_yaw.getFilter())->setParameters(1.24f, 5.27f, 0.0f); // 19.35f, 45.98f, 0.0f Legacy
             } else {
                 Serial.println("Reflex filter is not PID, no PID reflex set.");
                 return;
