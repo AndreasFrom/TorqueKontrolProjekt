@@ -7,7 +7,7 @@ from datetime import datetime
 
 # TCP Configuration
 #TCP_IP = "192.168.93.231"  # Replace with the Arduino's IP address (Arduino prints ip in terminal on boot)
-TCP_IP = "192.168.137.228"
+TCP_IP = "192.168.137.69"
 TCP_PORT = 4242            # Must match the Arduino's TCP port
 
 # Global variables
@@ -225,7 +225,7 @@ label_mode = tk.Label(root, text="Mode:")
 label_mode.grid(row=5, column=0, padx=10, pady=5, sticky="w")
 entry_mode = tk.Entry(root)
 entry_mode.grid(row=5, column=1, padx=10, pady=5, sticky="w")
-entry_mode.insert(0, "0")
+entry_mode.insert(0, "1")
 
 button_send_pid = tk.Button(root, text="Send PID & Setpoint", command=send_pid_setpoint)
 button_send_pid.grid(row=6, column=0, columnspan=2, padx=10, pady=5, sticky="w")
@@ -244,7 +244,7 @@ label_omega1 = tk.Label(root, text="Omega 1:")
 label_omega1.grid(row=8, column=0, padx=10, pady=5, sticky="w")
 entry_omega1 = tk.Entry(root)
 entry_omega1.grid(row=8, column=1, padx=10, pady=5, sticky="w")
-entry_omega1.insert(0, "0.05")
+entry_omega1.insert(0, "0.0")
 
 label_eta = tk.Label(root, text="Learning rate:")
 label_eta.grid(row=9, column=0, padx=10, pady=5, sticky="w")

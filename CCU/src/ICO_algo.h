@@ -15,6 +15,7 @@ class Reflex {
         void setOmega0(double omega0);
         void setSampleTime(double sampleTime);
         void clearFilter();
+        Filter* getFilter() { return h0_; } 
 
         void resetICO();
     private:
@@ -46,6 +47,7 @@ class Predictive {
         double getEta();
         void setEta(double eta);
         void clearFilter();
+        Filter* getFilter() { return hn_; } 
 
         void resetICO();
 

@@ -9,6 +9,7 @@
 #include "i2c_master.h"
 #include "SimpleKalmanFilter.h"
 #include "kinematic.h"
+#include "torqueControl.h"
 #include "ICO_algo.h"
 #include "math.h"
 #include "filter.h"
@@ -65,6 +66,8 @@ I2CMaster i2cMaster;
 
 // IMU
 DFRobot_BMX160 bmx160;
+sBmx160SensorData_t Ogyro_offset = {0, 0, 0};  
+sBmx160SensorData_t Oaccel_offset = {0, 0, 0}; 
 
 bool is_active = false; // Flag til logging
 
@@ -80,8 +83,15 @@ float setpoint = 0;
 float setpoint_radius = 0.5; 
 
 double actual_velocity = 0; // Initialize actual velocity
+double actual_velocity_x = 0; // Initialize actual velocity in x direction
+double actual_velocity_y = 0; // Initialize actual velocity in y direction
 
 double logging_time_start = 0; // Initialize logging time
+
+double setpoint_yaw_degs = 0;
+double updated_velocity = 0;
+double error_yaw = 0;
+double error_velocity = 0;
 
 // int setpoint0 = 711; // left front
 // int setpoint1 = 916.9; // right front
@@ -103,20 +113,28 @@ Kinematic kinematic_model;
 Velocities_acker wheel_RPMs; // Struct to hold wheel velocities
 Velocities_acker Wheel_velocities; // Struct to hold wheel velocities
 
+// Torque control
+TorqueControl torque_control;
+Currents currents; // Struct to hold currents for each wheel
+
 // Prototypes
 void handleClientCommunication(WiFiClient &client);
 void processClientMessage(String message);
+void calbrateIMU(void);
 
 void timerISR() {
     if ((millis() - logging_time_start) >= (1000*AUTO_STOP_TIME) && is_active == true)
     {
-        is_active = false;
-        sdLogger.close();
-        // Reset all setpoints
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START,   0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+1, 0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, 0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, 0);
+
+        sdLogger.close();
+        is_active = false;
+        
+        // Reset all setpoints
+        
 
         //Serial.println("Logging stopped!");
     }
@@ -136,6 +154,12 @@ void timerISR() {
         //bmx160.getGyroACC(&Ogyro, &Oaccel);
         bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
         //sdLogger.addData({timestamp, Oaccel.x, Oaccel.y, Oaccel.z});
+        Oaccel.x -= Oaccel_offset.x; // Offset for accelerometer
+        Oaccel.y -= Oaccel_offset.y; // Offset for accelerometer
+        Oaccel.z -= Oaccel_offset.z; // Offset for accelerometer
+        //Ogyro.x -= Ogyro_offset.x; // Offset for gyroscope
+        //Ogyro.y -= Ogyro_offset.y; // Offset for gyroscope
+        //Ogyro.z -= Ogyro_offset.z; // Offset for gyroscope
 
         // Apply Kalman filtering
         float filtered_gyro_z = gyroFilterZ.updateEstimate(Ogyro.z) * 4;
@@ -148,12 +172,13 @@ void timerISR() {
         Serial.print("Filtered Accel Y: "); Serial.print(filtered_accel_y); Serial.println(" m/s²");
         #endif
 
-        
-        actual_velocity += filtered_accel_y * (1.0 / SAMPLE_FREQ); // Integrate acceleration over time
+        actual_velocity_x += filtered_accel_x * (1.0 / SAMPLE_FREQ);
+        actual_velocity_y += filtered_accel_y * (1.0 / SAMPLE_FREQ);
 
-        // If setpoint is velocity
+        actual_velocity = sqrt(actual_velocity_x * actual_velocity_x + actual_velocity_y * actual_velocity_y); // Calculate the magnitude of the velocity vector
+
         double setpoint_yaw_degs = (setpoint / setpoint_radius) * 180/PI;
-
+        
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Setpoint: "); Serial.print(setpoint); Serial.println(" m/s, ");
         Serial.print("Setpoint Yaw: "); Serial.print(setpoint_yaw); Serial.println(" deg/s, ");
@@ -161,8 +186,8 @@ void timerISR() {
         #endif
         
         //double error_yaw = setpoint_yaw - filtered_gyro_z; // Used for datalogging
-        double error_yaw = ico_yaw.getError(); // Used for datalogging
-        double error_velocity = setpoint - actual_velocity;
+        error_yaw = ico_yaw.getError(); // Used for datalogging
+        error_velocity = setpoint - actual_velocity;
 
         double yaw_input = constrain(filtered_gyro_z, 0, 500);
         //double updated_yaw = ico_yaw.computeChange(yaw_input, yaw_input , setpoint_yaw_degs);
@@ -171,29 +196,72 @@ void timerISR() {
         //updated_yaw = constrain(updated_yaw, 0, 3000); // Constrain updated_yaw between 0 and 230 deg/s
         //double updated_velocity = ico_move.computeChange(actual_velocity, setpoint);
         double updated_yaw = 1;
-        double updated_velocity = ico_yaw.computeChange(yaw_input, yaw_input, setpoint_yaw_degs); // Constrain updated_velocity between 0 and 300 deg/s
+        updated_velocity = ico_yaw.computeChange(yaw_input, yaw_input, setpoint_yaw_degs); // Constrain updated_velocity between 0 and 300 deg/s
 
         #ifdef SEND_DATA_CONTROL_SERIAL
         Serial.print("Updated Yaw: "); Serial.print(updated_yaw); Serial.println(" deg/s, ");
         Serial.print("Updated Velocity: "); Serial.print(updated_velocity); Serial.println(" m/s");
         #endif
 
-        //kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
-        kinematic_model.getVelocities_acker(updated_velocity, 0.5, Wheel_velocities); // 0.5 radius of circle
+        switch (mode) {
+            case 0: {//   Velocity          
+                // If setpoint is velocity
+                
+        
+                //kinematic_model.getVelocities_acker_omega(updated_velocity, updated_yaw, Wheel_velocities);
+                kinematic_model.getVelocities_acker(updated_velocity, 0.5, Wheel_velocities); // 0.5 radius of circle
+                
+                #ifdef SEND_DATA_CONTROL_SERIAL
+                Serial.print("Wheel Velocities: ");
+                Serial.print("Left Front: "); Serial.print(Wheel_velocities.v_left_front); Serial.println(" m/s, ");
+                Serial.print("Right Front: "); Serial.print(Wheel_velocities.v_right_front); Serial.println(" m/s, ");
+                Serial.print("Left Rear: "); Serial.print(Wheel_velocities.v_left_rear); Serial.println(" m/s, ");
+                Serial.print("Right Rear: "); Serial.print(Wheel_velocities.v_right_rear); Serial.println(" m/s");
+                #endif
+        
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear); 
+                break; 
+            }
+            case 1: {// Torque
+                torque_control.calculateCurrents(updated_velocity, currents);
 
-        #ifdef SEND_DATA_CONTROL_SERIAL
-        Serial.print("Wheel Velocities: ");
-        Serial.print("Left Front: "); Serial.print(Wheel_velocities.v_left_front); Serial.println(" m/s, ");
-        Serial.print("Right Front: "); Serial.print(Wheel_velocities.v_right_front); Serial.println(" m/s, ");
-        Serial.print("Left Rear: "); Serial.print(Wheel_velocities.v_left_rear); Serial.println(" m/s, ");
-        Serial.print("Right Rear: "); Serial.print(Wheel_velocities.v_right_rear); Serial.println(" m/s");
-        #endif
+                double motor_constant = 98.1;
+                
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, currents.current_left_front * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, currents.current_right_front * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, currents.current_left_rear * motor_constant);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, currents.current_right_rear * motor_constant);
+                break;
+            }
+            case 2: {// RPM
+                // If setpoint is RPM
+                kinematic_model.getVelocities_acker(setpoint, setpoint_radius, wheel_RPMs);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, wheel_RPMs.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, wheel_RPMs.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, wheel_RPMs.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, wheel_RPMs.v_right_rear); 
+                break; 
+            }
+            case 3: { // Disable ICO algorithms and use velocity control
+                // If setpoint is velocity, set pid reflex, if reflex filter is PID
+                
+                kinematic_model.getVelocities_acker(setpoint, 0.5, Wheel_velocities); // 0.5 radius of circle
 
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
-        i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
-
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START, Wheel_velocities.v_left_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 1, Wheel_velocities.v_right_front);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 2, Wheel_velocities.v_left_rear);
+                i2cMaster.sendSetpoint(SLAVE_ADDRESS_START + 3, Wheel_velocities.v_right_rear);
+                break; 
+            }
+            default:
+                //do nothing
+                break;
+        }
+        
+        
         MUData MU0;
         MUData MU1;
         MUData MU2;
@@ -288,6 +356,9 @@ void processClientMessage(String message) {
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+2, 0);
         i2cMaster.sendSetpoint(SLAVE_ADDRESS_START+3, 0);
         Serial.println("Logging stopped!");
+
+        calbrateIMU(); // Calibrate IMU after stopping logging
+        Serial.println("IMU calibrated!");
         
     } else if (message.startsWith("PID:")) {
         client.println("ACK:PID");
@@ -315,11 +386,40 @@ void processClientMessage(String message) {
         Serial.print(" Ki: "); Serial.print(ki);
         Serial.print(" Kd: "); Serial.println(kd);
 
+        int mu_mode = 0;
+        if (mode <= 2)
+            mu_mode = mode;
+        else if (mode == 3) //If 3 disable, ico algorithms and use velocity control
+            mu_mode = 0;
+        else if (mode == 4) //If 4 disable, ico algorithms and use Torque control
+            mu_mode = 1;
+
         for (int i = 0; i < 4; i++) {
-            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, mode, kp, ki, kd);
+            bool success = i2cMaster.sendParam(SLAVE_ADDRESS_START + i, mu_mode, kp, ki, kd);
             if (!success) {
                 Serial.println("I2C communication failed!");
             }
+        }
+        
+        if (mode == 0) {
+            // If mode is velocity, set pid reflex, if reflex filter is PID
+            if (reflex_move.getFilter()->getType() == "PID") {
+                static_cast<PIDFilter*>(reflex_move.getFilter())->setParameters(1.24f, 5.27f, 0.0f);
+            } else {
+                Serial.println("Reflex filter is not PID, no PID reflex set.");
+                return;
+            }
+        } else if (mode == 1) {
+            // If mode is torque, set pid reflex
+            if (reflex_yaw.getFilter()->getType() == "PID") {
+                static_cast<PIDFilter*>(reflex_yaw.getFilter())->setParameters(19.35f, 45.98f, 0.0f);
+            } else {
+                Serial.println("Reflex filter is not PID, no PID reflex set.");
+                return;
+            }
+        } else {
+            Serial.println("Mode not 0 or 1, no PID reflex set.");
+            return;
         }
 
         kinematic_model.getVelocities_acker(setpoint, setpoint_radius, wheel_RPMs);
@@ -378,4 +478,41 @@ void processClientMessage(String message) {
         ico_yaw.resetICO();
         ico_move.resetICO();
     }
+}
+
+void calbrateIMU(void)
+{// If not active, calibrate the IMU
+    sBmx160SensorData_t Ogyro = {0, 0, 0};  
+    sBmx160SensorData_t Oaccel = {0, 0, 0}; 
+    sBmx160SensorData_t Omagn = {0, 0, 0}; 
+
+    float gyro_x_sum = 0;
+    float gyro_y_sum = 0;
+    float gyro_z_sum = 0;
+
+    float accel_x_sum = 0;
+    float accel_y_sum = 0;
+    float accel_z_sum = 0;
+
+    for (int i = 0; i < 100; i++) {
+        bmx160.getAllData(&Omagn, &Ogyro, &Oaccel);
+        gyro_x_sum += Ogyro.x;
+        gyro_y_sum += Ogyro.y;
+        gyro_z_sum += Ogyro.z;
+
+        accel_x_sum += Oaccel.x;
+        accel_y_sum += Oaccel.y;
+        accel_z_sum += Oaccel.z;
+
+        delay(5); // Wait for 5ms between samples
+    }
+    double gyro_x_offset = gyro_x_sum / 100;
+    double gyro_y_offset = gyro_y_sum / 100;
+    double gyro_z_offset = gyro_z_sum / 100;
+    double accel_x_offset = accel_x_sum / 100;
+    double accel_y_offset = accel_y_sum / 100;
+    double accel_z_offset = accel_z_sum / 100;
+
+    Ogyro_offset = {gyro_x_offset, gyro_y_offset, gyro_z_offset};
+    Oaccel_offset = {accel_x_offset, accel_y_offset, 9.82 - accel_z_offset};
 }

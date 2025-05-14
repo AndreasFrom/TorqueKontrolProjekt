@@ -85,6 +85,13 @@ PIDFilter::PIDFilter(double kp_value, double ki_value, double kd_value, double d
     integral = 0.0;
 }
 
+void PIDFilter::setParameters(double p, double i, double d)
+{
+    kp = p;
+    ki = i;
+    kd = d;
+}
+
 double PIDFilter::filter(double input)
 {
     double error = input;
