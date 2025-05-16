@@ -2,6 +2,7 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
+from scipy.signal import savgol_filter
 from typing import List, Tuple
 import os
 
@@ -167,6 +168,8 @@ def plot_distances_2d_time(
         plt.show()
 
 
+
+
 def analyze_motion(csv_file, output_dir=None):
     df = pd.read_csv(csv_file)
     fps = df["fps"].iloc[0]
@@ -175,14 +178,22 @@ def analyze_motion(csv_file, output_dir=None):
     y_positions = df["Y Position (m)"].values
     seconds = frames / fps
 
-    x_peaks, _ = find_peaks(x_positions, distance=5, prominence=0.3)
-    x_lows, _ = find_peaks(-x_positions, distance=3, prominence=0.1)
+    # Apply Savitzky-Golay filter
+    window_size = int(fps * 0.5)
+    if window_size % 2 == 0:
+        window_size += 1  # must be odd
+    smoothed_x = savgol_filter(x_positions, window_length=window_size, polyorder=2)
+    smoothed_y = savgol_filter(y_positions, window_length=window_size, polyorder=2)
 
+    # Find peaks/lows in smoothed data
+    x_peaks, _ = find_peaks(smoothed_x, distance=5, prominence=0.3)
+    x_lows, _ = find_peaks(-smoothed_x, distance=3, prominence=0.1)
+
+    # Save diameter plot only
     base_filename = os.path.splitext(os.path.basename(csv_file))[0]
-    save_path = os.path.join(output_dir, f"{base_filename}_diameter_plot.png") if output_dir else None
+    save_path = os.path.join(output_dir, f"{base_filename}_radii_plot.png") if output_dir else None
 
-    plot_distances_2d_time(seconds, x_positions, y_positions, x_peaks, x_lows, save_path=save_path)
-
+    plot_distances_2d_time(seconds, smoothed_x, smoothed_y, x_peaks, x_lows, save_path=save_path)
 
 if __name__ == "__main__":
     input_folder = os.path.join(os.path.dirname(__file__), 'output_files_repaired')
