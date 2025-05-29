@@ -5,12 +5,18 @@ import csv
 from tqdm import tqdm
 import sys
 from collections import deque
+import argparse
 
+num_iterations = 0
+debug = 0  # Global variable to control debug mode
 # Constants
 CIRCLE_MARKER = 11  # Marks the center of the circle
 CAR_MARKER = 10     # Marks the car position
-MAX_DISTANCE_THRESHOLD = 200  # Maximum allowed distance between consecutive points in pixels
+MAX_DISTANCE_THRESHOLD = 500  # Maximum allowed distance between consecutive points in pixels
 MOVING_AVG_WINDOW = 10  # Number of frames to average over
+
+trace_car_path = True
+car_path = []  # global or passed to function
 
 def initialize_video(video_path, output_path_video, frame_width, frame_height, fps):
     try:
@@ -35,8 +41,44 @@ def initialize_video(video_path, output_path_video, frame_width, frame_height, f
         sys.exit(1)
 
 def detect_markers(detector, frame, valid_ids, tracked_markers):
+    def print_image(frame, name="debug_frame"):
+        global num_iterations
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        debug_path = os.path.join(script_dir, f"{name}_{num_iterations}.jpg")
+        cv2.imwrite(debug_path, frame)
+        print(f"Debug frame saved to {debug_path}")
+
     try:
+        global num_iterations
+
+        original_frame = frame.copy()
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        #debug_gray = gray.copy()
+
+        # Use CLAHE instead of convertScaleAbs for better contrast
+        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(4,4))
+        gray = clahe.apply(gray)
+        #debug0 = gray.copy()
+
+
+        # Add morphology to view though cable
+        kernel = np.ones((5, 5), np.uint8)
+        gray = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, kernel)
+        #debug1 = gray.copy()
+        gray = cv2.morphologyEx(gray, cv2.MORPH_OPEN, kernel)
+        #debug2 = gray.copy()
+        gray = cv2.morphologyEx(gray, cv2.MORPH_DILATE, kernel)
+        #debug3 = gray.copy()
+        gray = cv2.morphologyEx(gray, cv2.MORPH_ERODE, kernel)
+        #debug4 = gray.copy()
+
+        # Save debug frame
+        if debug >= 3:
+            if num_iterations % 10 == 0:
+                print_image(gray)
+
+            num_iterations += 1
+
         corners, ids, _ = detector.detectMarkers(gray)
         detected_ids = set(ids.flatten()) if ids is not None else set()
 
@@ -68,14 +110,10 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
                             tracked_markers[marker_id]['last_known_corners'] = corners[i]
                             tracked_markers[marker_id]['position_history'].append(current_center)
                             tracked_markers[marker_id]['last_valid_position'] = current_center
-                            
-                            # Calculate moving average if we have enough samples
-                            if len(tracked_markers[marker_id]['position_history']) >= MOVING_AVG_WINDOW:
-                                avg_position = np.mean(tracked_markers[marker_id]['position_history'], axis=0)
-                                tracked_markers[marker_id]['smoothed_position'] = avg_position
                         else:
                             # Reject this detection as too far away
-                            print(f"Marker {marker_id} moved too far ({distance:.2f} pixels), using last valid position")
+                            if debug >= 1:
+                                print(f"Marker {marker_id} moved too far ({distance:.2f} pixels), using last valid position")
                             corners = list(corners)  # Convert to a mutable list
                             corners[i] = tracked_markers[marker_id]['last_known_corners']
                             corners = tuple(corners)  # Convert back to a tuple
@@ -83,37 +121,29 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
         # Handle markers that weren't detected in this frame
         for marker_id in list(tracked_markers.keys()):
             if marker_id not in detected_ids:
-                if tracked_markers[marker_id]['smoothed_position'] is not None:
-                    # Use smoothed position if available
-                    pass  # We'll keep using the last known corners
-                else:
-                    # Fall back to last known corners
-                    tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
+                tracked_markers[marker_id]['corners'] = tracked_markers[marker_id]['last_known_corners']
 
-        return corners, ids, detected_ids
+        return True
     except Exception as e:
         print(f"Error during marker detection: {str(e)}")
-        return None, None, set()
+        return False
 
-def process_corners(tracked_markers, corner_ids):
-    try:
-        selected_corners = []
-        selected_ids = []
-        other_corners = []
-        other_ids = []
+def process_markers(tracked_markers, corner_ids):
+    selected_corners = []
+    selected_ids = []
+    object_corners = []
+    object_ids = []
 
-        for marker_id, marker_data in tracked_markers.items():
-            if marker_id in corner_ids:
-                selected_corners.append(marker_data['corners'][0])
-                selected_ids.append(marker_id)
-            else:
-                other_corners.append(marker_data['corners'][0])
-                other_ids.append(marker_id)
+    for marker_id, marker_data in tracked_markers.items():
+        if marker_id in corner_ids:
+            selected_corners.append(marker_data['corners'][0])
+            selected_ids.append(marker_id)
+        else:
+            # For other markers, just take the top-left corner
+            object_corners.append(marker_data['corners'][0])  # Top-left corner
+            object_ids.append(marker_id)
 
-        return selected_corners, selected_ids, other_corners, other_ids
-    except Exception as e:
-        print(f"Error during corner processing: {str(e)}")
-        return [], [], [], []
+    return selected_corners, selected_ids, object_corners, object_ids
 
 def warp_frame(frame, selected_corners, frame_width, frame_height):
     try:
@@ -135,38 +165,119 @@ def warp_frame(frame, selected_corners, frame_width, frame_height):
         print(f"Error during frame warping: {str(e)}")
         return None, None
 
-def calculate_marker_locations(other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
+def calculate_marker_locations(object_ids, object_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image):
+    def transform_to_meters(point):
+        # Convert image pixel coordinates to real-world meters
+        x_meters = (point[0] / frame_width) * real_world_distance
+        y_meters = (point[1] / frame_height) * real_world_distance
+        return x_meters, y_meters
+
+    global debug, trace_car_path, car_path
     try:
         marker_locations = {}
         circle_center = None
+        vertical_dir = None
 
-        for i in range(len(other_ids)):
-            marker_point = other_corners[i][0].reshape(1, 1, -1)
-            transformed_center = cv2.perspectiveTransform(marker_point, matrix)[0][0]
-            
-            # Calculate real-world coordinates
-            x_meters = (transformed_center[0] / frame_width) * real_world_distance
-            y_meters = (transformed_center[1] / frame_height) * real_world_distance
-            marker_locations[other_ids[i]] = (x_meters, y_meters)
+        for i in range(len(object_ids)):
+            marker_id = object_ids[i]
+            corners = np.array(object_corners[i])  # Expecting shape: (4, 2)
 
-            text = f"ID {other_ids[i]}: ({x_meters:.2f}m, {y_meters:.2f}m)"
-            cv2.putText(warped_image, text, (int(transformed_center[0]), int(transformed_center[1])), 
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+            if corners.shape[0] < 4:
+                if debug >= 1:
+                    print(f"Warning: Marker {marker_id} has insufficient corners ({corners.shape}). Skipping.")
+                continue
 
-            if other_ids[i] == CIRCLE_MARKER:
-                radius_pixels = int((radius_meters / real_world_distance) * frame_height)
-                cv2.circle(warped_image, (int(transformed_center[0]), int(transformed_center[1])), radius_pixels, (0, 0, 255), 2)
-                circle_center = (x_meters, y_meters)
+            if marker_id == CAR_MARKER:
+                car_corners = corners.reshape((4, 2))
+
+                try:
+                    p0 = cv2.perspectiveTransform(car_corners[0].reshape(1, 1, 2), matrix)[0][0]  
+                    p3 = cv2.perspectiveTransform(car_corners[3].reshape(1, 1, 2), matrix)[0][0]  
+                    p1 = cv2.perspectiveTransform(car_corners[1].reshape(1, 1, 2), matrix)[0][0] 
+                    p2 = cv2.perspectiveTransform(car_corners[2].reshape(1, 1, 2), matrix)[0][0] 
+                except Exception as e:
+                    if debug >= 1:
+                        print(f"Frame {i}: Error transforming CAR_MARKER corners: {e}")
+                    continue
+
+                # Midpoint of the bottom edge
+                midpoint = (p2 + p3) / 2
+
+                # Direction 
+                vertical_dir = p0 - p3
+                norm = np.linalg.norm(vertical_dir)
+
+                if norm == 0:
+                    if debug >= 1:
+                        print(f"Warning: Zero-length direction vector for CAR_MARKER {marker_id}. Skipping.")
+                    continue
+                vertical_dir /= norm
+
+                # Offset the point downward
+                imu_offset_meters = -0.05
+                offset_pixels = (imu_offset_meters / real_world_distance) * frame_height
+                new_position = midpoint + (vertical_dir * offset_pixels)
+
+                marker_point = new_position.reshape(1, 1, 2)
+            else:
+                mean_point = np.mean(corners, axis=0)
+                if mean_point.shape != (2,):
+                    if debug >= 1:
+                        print(f"Warning: Marker {marker_id} has malformed mean point {mean_point.shape}. Skipping.")
+                    continue
+                try:
+                    marker_center = cv2.perspectiveTransform(mean_point.reshape(1, 1, 2), matrix)[0][0]
+                    marker_point = marker_center.reshape(1, 1, 2)
+                except Exception as e:
+                    if debug >= 1:
+                        print(f"Frame {i}: Error transforming marker {marker_id} center: {e}")
+                    continue
+
+            # Convert to meters
+            x_meters, y_meters = transform_to_meters(marker_point[0][0])
+            marker_locations[marker_id] = (x_meters, y_meters)
+
+            # Inside your main loop after marker_point is computed:
+            x_int, y_int = map(int, marker_point[0][0])
+
+            # Draw if within bounds
+            if 0 <= x_int < warped_image.shape[1] and 0 <= y_int < warped_image.shape[0]:
+                text = f"ID {marker_id}: ({x_meters:.2f}m, {y_meters:.2f}m)"
+                cv2.putText(warped_image, text, (x_int, y_int),
+                            cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2, cv2.LINE_AA)
+
+                if marker_id == CAR_MARKER:
+                    # Draw red dot
+                    cv2.circle(warped_image, (x_int, y_int), 5, (0, 0, 255), -1)
+
+                    # Trace car path
+                    if trace_car_path:
+                        car_path.append((x_int, y_int))
+                        for j in range(1, len(car_path)):
+                            # Calculate a smooth gradient color based on the path index
+                            t = j / len(car_path)  # Normalize index to range [0, 1]
+                            color = (
+                                int(255 * (1 - t)),  # Blue decreases
+                                
+                                int((255 * (1 - t) + 112) * 1.5),                  # Red remains constant
+                                int(255 * t)        # Green increases
+                            )
+                            cv2.line(warped_image, car_path[j - 1], car_path[j], color, 2)
+
 
         return marker_locations, circle_center
+
     except Exception as e:
         print(f"Error during marker location calculation: {str(e)}")
         return {}, None
 
+
+
+
 def save_to_csv(data, output_csv):
     try:
         os.makedirs(os.path.dirname(output_csv), exist_ok=True)
-        header = ["Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)"]
+        header = ["fps", "Frame", "Marker ID", "X Position (m)", "Y Position (m)", "Distance from Circle (m)", "Distance from Previous Point (m)", "Speed (m/s)"]
         with open(output_csv, mode="w", newline="") as file:
             writer = csv.writer(file)
             writer.writerow(header)
@@ -175,15 +286,44 @@ def save_to_csv(data, output_csv):
     except Exception as e:
         print(f"Error saving CSV file: {str(e)}")
 
+def parse_arguments():
+    # Parse command-line arguments
+    parser = argparse.ArgumentParser(description="Process a video file to detect and track markers.")
+    parser.add_argument("video_path", type=str, help="Path to the input video file")
+    parser.add_argument("--debug", type=int, choices=[0, 1, 2, 3], default=0, 
+                        help="Set debug level: 0 (off), 1 (basic), 2 (detailed), 3 (save debug frames)")
+
+    return parser.parse_args()
+
 def main():
     try:
+        # Parse arguments
+        args = parse_arguments()
+
         # Create output directory if it doesn't exist
         output_dir = os.path.join(os.path.dirname(__file__), 'output_files')
         os.makedirs(output_dir, exist_ok=True)
-        
-        video_path = 'input_files/IMG_4387.mov'
-        output_path = os.path.join(output_dir, 'output_warped_video.mp4')
-        output_csv = os.path.join(output_dir, 'marker_positions.csv')
+
+        # Set debug mode globally
+        global debug
+        debug = args.debug
+
+        # Debug messages based on the level
+        if debug == 0:
+            print("Debug mode: Off")
+        elif debug == 1:
+            print("Debug mode: Basic logging enabled")
+        elif debug == 2:
+            print("Debug mode: Detailed logging enabled")
+        elif debug == 3:
+            print("Debug mode: Saving debug frames")
+
+        video_path = args.video_path
+        video_name = os.path.splitext(os.path.basename(video_path))[0]
+        output_path = os.path.join(output_dir, f'{video_name}_warped_video.mp4')
+        output_csv = os.path.join(output_dir, f'{video_name}_marker_positions.csv')
+
+        debug_path = os.path.join(output_dir, f'{video_name}_debug_frame.jpg')
 
         # Check if input file exists
         if not os.path.exists(video_path):
@@ -207,6 +347,25 @@ def main():
 
         aruco_dict = cv2.aruco.getPredefinedDictionary(cv2.aruco.DICT_4X4_50)
         parameters = cv2.aruco.DetectorParameters()
+
+        parameters.adaptiveThreshWinSizeMin = 3  # Slightly larger window for better local contrast adaptation
+        parameters.adaptiveThreshWinSizeMax = 70  # Larger window to adapt to varying lighting
+        parameters.adaptiveThreshConstant = 5  # Increased value to handle distant markers
+
+        parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
+        parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
+
+        parameters.polygonalApproxAccuracyRate = 0.1  # More relaxed for robustness
+        parameters.minCornerDistanceRate = 0.01  # Ensures very small markers don't get filtered out
+        parameters.minDistanceToBorder = 0 # Reduce border exclusion to detect near edges
+
+        parameters.markerBorderBits = 1  # Reduces the strictness of border detection
+        parameters.minOtsuStdDev = 1.5  # More tolerance to lighting variation
+        parameters.perspectiveRemoveIgnoredMarginPerCell = 0.0  # Allows detection of markers at any angle
+
+        parameters.errorCorrectionRate = 0.25  # Low error correction 
+        parameters.maxErroneousBitsInBorderRate = 0.8  # Allows detection even if some bits are noisy
+
         detector = cv2.aruco.ArucoDetector(aruco_dict, parameters)
         tracked_markers = {}
 
@@ -216,20 +375,26 @@ def main():
         missing_corners_count = 0
         total_processed_frames = 0
 
+        previous_x = None
+        previous_y = None
+
         with tqdm(total=total_frames, desc="Processing Video", unit="frame") as pbar:
             while True:
                 ret, frame = cap.read()
                 if not ret:
                     break
 
-                corners, ids, detected_ids = detect_markers(detector, frame, valid_ids, tracked_markers)
-                selected_corners, selected_ids, other_corners, other_ids = process_corners(tracked_markers, corner_ids)
+                detect_markers(detector, frame, valid_ids, tracked_markers)
+                selected_corners, selected_ids, object_corners, object_ids = process_markers(tracked_markers, corner_ids)
+                if debug >= 2:
+                    print(f"Frame {frame_index}: Corner IDs: {selected_ids}")
+                    print(f"Frame {frame_index}: Object IDs: {object_ids}")
 
                 if len(selected_corners) == 4:
                     warped_image, matrix = warp_frame(frame, selected_corners, frame_width, frame_height)
                     if warped_image is not None:
                         marker_locations, circle_center = calculate_marker_locations(
-                            other_ids, other_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
+                            object_ids, object_corners, matrix, frame_width, frame_height, real_world_distance, radius_meters, warped_image
                         )
 
                         if circle_center is not None:
@@ -237,11 +402,17 @@ def main():
 
                         out.write(warped_image)
                         total_processed_frames += 1
-
-                        if CAR_MARKER in marker_locations and last_circle_center is not None:
+                            
+                        if CAR_MARKER in marker_locations:
                             x, y = marker_locations[CAR_MARKER]
-                            distance = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2)
-                            csv_data.append((frame_index, CAR_MARKER, x, y, distance))
+                            distance_from_circle = np.sqrt((x - last_circle_center[0])**2 + (y - last_circle_center[1])**2) if last_circle_center is not None else 0
+                            distance_from_previous_point = np.sqrt((x - previous_x)**2 + (y - previous_y)**2) if previous_x is not None and previous_y is not None else 0
+                            speed = distance_from_previous_point / (1 / fps)
+                            csv_data.append((fps, frame_index, CAR_MARKER, x, y, distance_from_circle, distance_from_previous_point, speed))
+
+                            previous_x = x
+                            previous_y = y
+
                 else:
                     missing_corners_count += 1
 
