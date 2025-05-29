@@ -72,15 +72,6 @@ def detect_markers(detector, frame, valid_ids, tracked_markers):
         gray = cv2.morphologyEx(gray, cv2.MORPH_ERODE, kernel)
         #debug4 = gray.copy()
 
-        #if num_iterations % 100 == 0:
-        #    print_image(original_frame, "Original_Frame")
-        #    print_image(debug_gray, "gray")
-        #    print_image(debug0,"Morph_Clahe")
-        #    print_image(debug1,"Morph_Close")
-        #    print_image(debug2,"Morph_Open")
-        #    print_image(debug3,"Morph_Dilate")
-        #    print_image(debug4,"Morph_Erode")
-
         # Save debug frame
         if debug >= 3:
             if num_iterations % 10 == 0:
