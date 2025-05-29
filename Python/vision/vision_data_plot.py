@@ -17,7 +17,7 @@ def plot_marker_data(csv_path, output_plot_path):
     seconds = frames * 1 / fps
 
     # Smooth positions
-    window_size = int(fps.iloc[0] * 0.5)
+    window_size = int(fps.iloc[0] * 1)
     if window_size % 2 == 0:
         window_size += 1  # window length must be odd for savgol_filter
 
@@ -41,7 +41,7 @@ def plot_marker_data(csv_path, output_plot_path):
     axes.set_ylabel("Position (m)")
     axes.set_title("Marker 10 Position Over Time")
     axes.legend()
-    axes.grid()
+    axes.grid(which='both', linestyle='--', linewidth=0.5)
     
     fig_pos_time.tight_layout()
     fig_pos_time.savefig(output_plot_path.replace('.png', '_position.png'))
@@ -63,7 +63,9 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[0].set_ylabel("Speed (m/s)")
     axes[0].set_title("Marker 10 Speed Over Time")
     axes[0].legend()
-    axes[0].grid()
+    axes[0].grid(which='both', linestyle='--', linewidth=0.5)
+    axes[0].yaxis.set_major_locator(plt.MaxNLocator(nbins=15)) 
+    axes[0].set_ylim(0, 1.5) 
 
     # Moving average of smoothed speed
     moving_avg_speed = pd.Series(smoothed_speed).rolling(window=window_size).mean()
@@ -72,7 +74,13 @@ def plot_marker_data(csv_path, output_plot_path):
     axes[1].set_ylabel("Speed (m/s)")
     axes[1].set_title(f"Marker 10 Speed Moving Average (Window Size: {window_size})")
     axes[1].legend()
-    axes[1].grid()
+    axes[1].grid(which='both', linestyle='--', linewidth=0.5)
+    axes[1].yaxis.set_major_locator(plt.MaxNLocator(nbins=15))
+    axes[1].set_ylim(0, 1.5)
+
+    # print median of moving average speed with name of file
+    median_speed = moving_avg_speed.median()
+    print(f"Median Speed for {os.path.basename(csv_path)}: {median_speed:.3f} m/s")
     
     fig_speed.tight_layout()
     fig_speed.savefig(output_plot_path.replace('.png', '_speed.png'))
@@ -81,20 +89,47 @@ def plot_marker_data(csv_path, output_plot_path):
     
     # Plot positions
     plt.figure(figsize=(6, 6))  # Set figure size to ensure a square plot
-    plt.plot(x_positions, y_positions, label='Position', color='blue')
+    plt.plot(x_positions, y_positions, label='Position', color='green', alpha=0.5, linewidth=1)
     
     # Add a vector arrow to indicate the starting direction and location using the first few points
-    num_points = 5  # Number of points to calculate the average direction
-    start_x = x_positions.iloc[0]
-    start_y = y_positions.iloc[0]
-    avg_dx = x_positions.iloc[1:num_points].mean() - start_x
-    avg_dy = y_positions.iloc[1:num_points].mean() - start_y
-    plt.quiver(start_x, start_y, avg_dx, avg_dy, angles='xy', scale_units='xy', scale=1, color='red', label='Start Direction')
+    # Define minimum movement threshold (in meters)
+    min_movement = 0.1
+    arrow_length = 0.05  # Set the desired arrow length (in meters)
+
+    # Find the first point where movement exceeds the threshold
+    start_index = 0
+    for i in range(1, len(x_positions)):
+        dx = x_positions.iloc[i] - x_positions.iloc[start_index]
+        dy = y_positions.iloc[i] - y_positions.iloc[start_index]
+        if (dx**2 + dy**2)**0.5 >= min_movement:
+            break
+
+    # Number of points to average for direction calculation
+    num_points = 8
+    end_index = min(i + num_points, len(x_positions))
+
+    # Calculate average direction vector
+    start_x = x_positions.iloc[start_index]
+    start_y = y_positions.iloc[start_index]
+    avg_dx = x_positions.iloc[start_index+1:end_index].mean() - start_x
+    avg_dy = y_positions.iloc[start_index+1:end_index].mean() - start_y
+
+    # Normalize direction vector and scale to arrow_length
+    norm = (avg_dx**2 + avg_dy**2)**0.5
+    if norm != 0:
+        avg_dx = avg_dx / norm * arrow_length
+        avg_dy = avg_dy / norm * arrow_length
+    else:
+        avg_dx = arrow_length
+        avg_dy = 0
+    plt.quiver(start_x, start_y, avg_dx, avg_dy, angles='xy', scale_units='xy', scale=0.3, color='red', label='Start Direction', zorder=5)
+    # Overlay Savitzky-Golay smoothed trajectory
+    plt.plot(smoothed_x, smoothed_y, label='Smoothed Trajectory', color='blue', linewidth=1, alpha=1, zorder=4)
     plt.xlabel("X Position (m)")
     plt.ylabel("Y Position (m)")
     plt.title("Marker 10 Position Plot")
     plt.legend()
-    plt.grid()
+    plt.grid(which='both', linestyle='--', linewidth=0.5)
     plt.axis('equal')
     # Plot positions with moving average filter
     #moving_avg_x_positions = x_positions.rolling(window=window_size).mean()

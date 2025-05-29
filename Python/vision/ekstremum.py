@@ -3,8 +3,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.signal import find_peaks
 from scipy.signal import savgol_filter
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 import os
+from collections import defaultdict
+
+def remove_iqr_outliers(values: np.ndarray, times: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+    """Remove IQR outliers while keeping time-value pairs aligned."""
+    q1 = np.percentile(values, 25)
+    q3 = np.percentile(values, 75)
+    iqr = q3 - q1
+    lower = q1 - 1.5 * iqr
+    upper = q3 + 1.5 * iqr
+
+    mask = (values >= lower) & (values <= upper)
+    return values[mask], times[mask]
+
 
 
 def load_data(csv_path: str) -> pd.DataFrame:
@@ -26,76 +39,6 @@ def euclidean_distance(x1, y1, x2, y2) -> float:
     return np.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
 
-def compute_distances(peaks: np.ndarray, lows: np.ndarray, x: np.ndarray, y: np.ndarray) -> List[Tuple[float, float]]:
-    distances = []
-    is_peak_first = peaks[0] < lows[0]
-    for i in range(min(len(peaks), len(lows)) - 1):
-        if is_peak_first:
-            p, l, np_ = peaks[i], lows[i], peaks[i + 1]
-            d1 = euclidean_distance(x[p], y[p], x[l], y[l])
-            d2 = euclidean_distance(x[l], y[l], x[np_], y[np_])
-        else:
-            l, p, nl = lows[i], peaks[i], lows[i + 1]
-            d1 = euclidean_distance(x[l], y[l], x[p], y[p])
-            d2 = euclidean_distance(x[p], y[p], x[nl], y[nl])
-        distances.append((d1, d2))
-        is_peak_first = not is_peak_first
-    return distances
-
-
-def plot_peaks_lows(seconds, x, peaks, lows, title="X Position with Peaks and Lows", save_path: str = None):
-    plt.figure(figsize=(10, 5))
-    plt.plot(seconds, x, label="X Position (m)", color="blue")
-    plt.plot(seconds[peaks], x[peaks], "rx", label="Peaks")
-    plt.plot(seconds[lows], x[lows], "go", label="Lows")
-    plt.xlabel("Time (s)")
-    plt.ylabel("X Position (m)")
-    plt.title(title)
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-    
-    if save_path:
-        plt.savefig(save_path, dpi=300)
-        plt.close()
-    else:
-        plt.show()
-
-
-def plot_distances(seconds, x, peaks, lows, distances: List[Tuple[float, float]], save_path: str = None):
-    plt.figure(figsize=(10, 5))
-    plt.plot(seconds, x, label="X Position (m)", color="blue")
-    plt.plot(seconds[peaks], x[peaks], "rx", label="Peaks")
-    plt.plot(seconds[lows], x[lows], "go", label="Lows")
-
-    is_peak_first = peaks[0] < lows[0]
-    for i, (d1, d2) in enumerate(distances):
-        try:
-            if is_peak_first:
-                p, l, np_ = peaks[i], lows[i], peaks[i + 1]
-                plt.plot([seconds[p], seconds[l]], [x[p], x[l]], "r--")
-                plt.plot([seconds[l], seconds[np_]], [x[l], x[np_]], "g--")
-            else:
-                l, p, nl = lows[i], peaks[i], lows[i + 1]
-                plt.plot([seconds[l], seconds[p]], [x[l], x[p]], "g--")
-                plt.plot([seconds[p], seconds[nl]], [x[p], x[nl]], "r--")
-        except IndexError:
-            continue
-
-    plt.title("X Position with Segment Distances")
-    plt.xlabel("Time (s)")
-    plt.ylabel("X Position (m)")
-    plt.legend()
-    plt.grid(True)
-    plt.tight_layout()
-
-    if save_path:
-        plt.savefig(save_path, dpi=300)
-        plt.close()
-    else:
-        plt.show()
-
-
 def plot_distances_2d_time(
     seconds: np.ndarray,
     x_positions: np.ndarray,
@@ -105,6 +48,7 @@ def plot_distances_2d_time(
     title: str = "Circle Diameter Measurements Over Time",
     save_path: str = None
 ):
+    """Plot diameter measurements over time for a single file"""
     if len(peaks) < 1 or len(lows) < 1:
         print("Need both peaks and lows to calculate diameters.")
         return
@@ -138,9 +82,14 @@ def plot_distances_2d_time(
 
     times_array = np.array(measurement_times)
     diameters_array = np.array(diameters)
+
+    # Filter using IQR
+    diameters_array, times_array = remove_iqr_outliers(diameters_array, times_array)
+
     sort_idx = np.argsort(times_array)
     times_sorted = times_array[sort_idx]
     diameters_sorted = diameters_array[sort_idx]
+
 
     plt.figure(figsize=(14, 7))
     plt.scatter(times_sorted, diameters_sorted, c='blue', alpha=0.6, label='Diameter Measurements')
@@ -168,9 +117,8 @@ def plot_distances_2d_time(
         plt.show()
 
 
-
-
-def analyze_motion(csv_file, output_dir=None):
+def analyze_motion(csv_file: str) -> Dict[str, np.ndarray]:
+    """Analyze motion data and return relevant arrays"""
     df = pd.read_csv(csv_file)
     fps = df["fps"].iloc[0]
     frames = df["Frame"]
@@ -189,19 +137,167 @@ def analyze_motion(csv_file, output_dir=None):
     x_peaks, _ = find_peaks(smoothed_x, distance=5, prominence=0.3)
     x_lows, _ = find_peaks(-smoothed_x, distance=3, prominence=0.1)
 
-    # Save diameter plot only
-    base_filename = os.path.splitext(os.path.basename(csv_file))[0]
-    save_path = os.path.join(output_dir, f"{base_filename}_radii_plot.png") if output_dir else None
+    return {
+        'seconds': seconds,
+        'smoothed_x': smoothed_x,
+        'smoothed_y': smoothed_y,
+        'x_peaks': x_peaks,
+        'x_lows': x_lows,
+        'filename': os.path.basename(csv_file)
+    }
 
-    plot_distances_2d_time(seconds, smoothed_x, smoothed_y, x_peaks, x_lows, save_path=save_path)
 
-if __name__ == "__main__":
+def plot_grouped_diameters(group_data: List[Dict[str, np.ndarray]], output_path: str):
+    """Plot all diameter measurements for a group of files in one figure"""
+    plt.figure(figsize=(14, 10))
+    
+    all_diameters = []
+    
+    for i, data in enumerate(group_data):
+        seconds = data['seconds']
+        x = data['smoothed_x']
+        y = data['smoothed_y']
+        peaks = data['x_peaks']
+        lows = data['x_lows']
+        filename = data['filename']
+        
+        if len(peaks) < 1 or len(lows) < 1:
+            print(f"Skipping {filename} - not enough peaks/lows")
+            continue
+
+        diameters = []
+        measurement_times = []
+        pairs = []
+        is_peak_first = peaks[0] < lows[0]
+
+        for i in range(max(len(peaks), len(lows)) - 1):
+            if is_peak_first:
+                if i < len(peaks) and i < len(lows):
+                    pairs.append((peaks[i], lows[i]))
+                if i < len(lows) and i + 1 < len(peaks):
+                    pairs.append((lows[i], peaks[i + 1]))
+            else:
+                if i < len(lows) and i < len(peaks):
+                    pairs.append((lows[i], peaks[i]))
+                if i < len(peaks) and i + 1 < len(lows):
+                    pairs.append((peaks[i], lows[i + 1]))
+
+        for p1, p2 in pairs:
+            distance = euclidean_distance(x[p1], y[p1], x[p2], y[p2])
+            diameters.append(distance)
+            measurement_times.append((seconds[p1] + seconds[p2]) / 2)
+
+        if not diameters:
+            print(f"No valid diameter measurements found in {filename}")
+            continue
+
+        times_array = np.array(measurement_times)        
+        diameters_array = np.array(diameters)
+
+        for i in range(len(diameters_array)):
+            # if data < 0.9 remove it
+            # Remove diameter measurements less than 0.9
+            mask = diameters_array >= 0.9
+            diameters_array = diameters_array[mask]
+            times_array = times_array[mask]
+
+        diameters_array, times_array = remove_iqr_outliers(diameters_array, times_array)
+
+
+        sort_idx = np.argsort(times_array)
+        times_sorted = times_array[sort_idx]
+        diameters_sorted = diameters_array[sort_idx]
+        
+        all_diameters.extend(diameters_sorted)
+        
+        # Plot individual file data
+        plt.scatter(times_sorted, diameters_sorted, 
+                   label=f"{filename} (n={len(diameters_sorted)})")
+    
+    if not all_diameters:
+        print("No valid diameter measurements in this group")
+        plt.close()
+        return
+    
+    # Calculate and plot overall statistics
+    mean_diameter = np.mean(all_diameters)
+    std_diameter = np.std(all_diameters)
+    
+    plt.axhline(mean_diameter, color='r', linestyle='--', label=f'Group Mean: {mean_diameter:.3f}m')
+    plt.axhline(mean_diameter + std_diameter, color='gray', linestyle=':', label=f'±1 Std Dev')
+    plt.axhline(mean_diameter - std_diameter, color='gray', linestyle=':')
+    
+    plt.xlabel("Time (s)")
+    plt.ylabel("Diameter (m)")
+    plt.title(f"Diameter Measurements - {group_data[0]['filename'].split('_')[0]}_{group_data[0]['filename'].split('_')[1]}\n"
+              f"Total measurements: {len(all_diameters)}")
+    plt.grid(True, alpha=0.3)
+    plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+    
+    stats_text = (f"Group Statistics:\n"
+                 f"Mean: {mean_diameter:.3f} m\n"
+                 f"Std Dev: {std_diameter:.3f} m\n"
+                 f"Min: {np.min(all_diameters):.3f} m\n"
+                 f"Max: {np.max(all_diameters):.3f} m")
+    plt.gca().text(0.02, 0.98, stats_text,
+                  transform=plt.gca().transAxes,
+                  verticalalignment='top',
+                  bbox=dict(facecolor='white', alpha=0.8))
+    
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=300, bbox_inches='tight')
+    plt.close()
+
+
+def main():
     input_folder = os.path.join(os.path.dirname(__file__), 'output_files_repaired')
-    output_folder = os.path.join(os.path.dirname(__file__), 'output_plots')
-    os.makedirs(output_folder, exist_ok=True)
+    output_base_folder = os.path.join(os.path.dirname(__file__), 'output_plots')
+    os.makedirs(output_base_folder, exist_ok=True)
 
+    # Group files by their prefix (e.g., '05_speed', '075_ICOtorque')
+    file_groups = defaultdict(list)
+    
     for file_name in os.listdir(input_folder):
         if file_name.endswith('.csv'):
-            csv_file = os.path.join(input_folder, file_name)
-            print(f"Processing {csv_file}...")
-            analyze_motion(csv_file, output_folder)
+            parts = file_name.split('_')
+            if len(parts) >= 2:
+                prefix = f"{parts[0]}_{parts[1]}"
+                file_groups[prefix].append(os.path.join(input_folder, file_name))
+
+    # Process each group
+    for prefix, file_list in file_groups.items():
+        print(f"\nProcessing group: {prefix}")
+        group_output_folder = os.path.join(output_base_folder, prefix)
+        os.makedirs(group_output_folder, exist_ok=True)
+        
+        # Analyze all files in the group
+        group_data = []
+        for file_path in file_list:
+            print(f"  Analyzing {os.path.basename(file_path)}...")
+            try:
+                data = analyze_motion(file_path)
+                group_data.append(data)
+                
+                # Save individual plots
+                plot_distances_2d_time(
+                    data['seconds'], 
+                    data['smoothed_x'], 
+                    data['smoothed_y'], 
+                    data['x_peaks'], 
+                    data['x_lows'],
+                    title=f"Diameter Measurements - {os.path.basename(file_path)}",
+                    save_path=os.path.join(group_output_folder, f"{os.path.splitext(os.path.basename(file_path))[0]}_radii.png")
+                )
+            except Exception as e:
+                print(f"Error processing {file_path}: {str(e)}")
+                continue
+        
+        # Create combined plot for the group
+        if group_data:
+            combined_plot_path = os.path.join(group_output_folder, f"{prefix}_combined_diameters.png")
+            plot_grouped_diameters(group_data, combined_plot_path)
+            print(f"Saved combined plot to {combined_plot_path}")
+
+
+if __name__ == "__main__":
+    main()

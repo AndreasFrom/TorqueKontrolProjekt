@@ -358,13 +358,13 @@ def main():
         parameters = cv2.aruco.DetectorParameters()
 
         parameters.adaptiveThreshWinSizeMin = 3  # Slightly larger window for better local contrast adaptation
-        parameters.adaptiveThreshWinSizeMax = 50  # Larger window to adapt to varying lighting
-        parameters.adaptiveThreshConstant = 10  # Increased value to handle distant markers
+        parameters.adaptiveThreshWinSizeMax = 70  # Larger window to adapt to varying lighting
+        parameters.adaptiveThreshConstant = 5  # Increased value to handle distant markers
 
         parameters.minMarkerPerimeterRate = 0.005  # Detect even smaller markers
         parameters.maxMarkerPerimeterRate = 5.0  # Allow larger markers
 
-        parameters.polygonalApproxAccuracyRate = 0.05  # More relaxed for robustness
+        parameters.polygonalApproxAccuracyRate = 0.1  # More relaxed for robustness
         parameters.minCornerDistanceRate = 0.01  # Ensures very small markers don't get filtered out
         parameters.minDistanceToBorder = 0 # Reduce border exclusion to detect near edges
 
