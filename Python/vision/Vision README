@@ -1,0 +1,49 @@
+# Torque Control Vision Tracking System
+
+This project provides a Python-based pipeline for video analysis using OpenCV. It detects ArUco fiducial markers in each frame to track a moving “car” marker. By identifying the four corner points of the markers, the system estimates camera pose and maps image points to a real-world plane. The workflow applies morphological operations to clean up the image, then computes a homography (perspective transform) from a known reference marker. The car marker’s pixel coordinates are transformed into real-world coordinates and recorded. Finally, the software outputs the tracked path and generates visualizations (2D/3D plots and annotated frames).
+
+## Getting Started
+
+- **Dependencies:** Requires Python 3 with OpenCV (cv2), NumPy, Matplotlib, etc. There is *no automated dependency installer* provided, so install these manually (e.g., via `pip install opencv-python numpy matplotlib`).
+- **Runner Script:** Use the `process_video.py` script as the entry point. This script runs the full analysis pipeline on the video files.
+- **How to:** To process all videos (MP4/MOV) and generate outputs, run:
+  ```bash
+  python process_video.py
+  ```
+  This will execute the analysis on each video in the input directory. The outputs (plots, warped videos) will be saved to the designated output folders (Created while the program runs).
+
+## Usage
+
+When you run `process_video.py`, it orchestrates the following steps for each input video:
+
+- **Video Analysis:** Calls `analyze_video.py` to process the video. This involves reading the video, detecting ArUco markers frame-by-frame, applying image preprocessing (e.g., thresholding, erosion/dilation), and correcting perspective distortions using the calculated homography matrix.
+- **Coordinate Mapping:** The script transforms the detected "car" marker’s image corner to real-world coordinates using the homography. For example:
+  ```python
+  real_world_point = cv2.perspectiveTransform(car_corners[0].reshape(1,1,2), matrix)[0][0]
+  ```
+- **Data Saving:** Tracked positions (with timestamps or frame numbers) are written to CSV files.
+- **Data Repair (Optional):** `repair_data.py` is called to fix or interpolate missing or noisy points.
+- **Visualization:** Plotting scripts include:
+  - `vision_data_plot.py`: 2D trajectory overlay
+  - `x_y_pointplot.py`: XY scatter or line plot
+  - `3dplot_position.py`: 3D plot of X vs Y vs Time
+  - `ekstremum.py`: Extremum analysis of the trajectory
+
+## File Structure
+
+- `process_video.py`: Main runner script for batch processing and post-analysis.
+- `analyze_video.py`: Core video processing, including marker detection, warping, tracking, and CSV output.
+- `repair_data.py`: Cleans and interpolates tracking data.
+- `vision_data_plot.py`: Generates annotated 2D plots.
+- `3dplot_position.py`: Creates 3D plots of the trajectory.
+- `x_y_pointplot.py`: Plots XY trajectory.
+- `ekstremum.py`: Finds trajectory extrema (e.g., peaks).
+
+## Code Inspirations
+
+The implementation draws inspiration from the following resources:
+
+- [OpenCV ArUco Detection Tutorial](https://docs.opencv.org/4.x/d5/dae/tutorial_aruco_detection.html)
+- [StackOverflow: Mapping coordinates with warpPerspective](https://stackoverflow.com/questions/67264619/i-warped-an-image-in-opencv-using-warpperspective-but-now-i-want-to-match-coord)
+- [GeeksforGeeks: Morphological Operations in OpenCV](https://www.geeksforgeeks.org/python-opencv-morphological-operations/)
+
